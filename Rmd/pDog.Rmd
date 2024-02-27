@@ -1,0 +1,183 @@
+---
+title: "**SIOFA Sharks**"
+subtitle: "Centroscymnus coelolepis"
+author: "L Kell"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+#bibliography: /home/laurie/pCloudDrive/refs.bib
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/pdog/",
+               fig.path  ="../figs/pdog/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+```{r setup}
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales, better for visibility
+```
+
+```{r, setwd}
+setwd("/home/laurie/Desktop/projects/siofa/Rmd")
+```
+
+```{r, data}
+# Data Preparation
+# Load data from an Excel file into data frames
+cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+
+# Adjusting time format
+adjust_time_format<-function(time)
+  format(as.POSIXct(time * 86400, origin = "1970-01-01", tz = "UTC"), "%H:%M:%S")
+
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$Time       =adjust_time_format(cpue$Time)
+cpue$Year       =year(cpue$Date)
+
+cpue=subset(cpue,speciesScientificName=="Centroscymnus coelolepis")
+biol=subset(biol,speciesScientificName=="Centroscymnus coelolepis")
+
+catchSmry<-function(data) {
+  # Filter out NAs
+  filtered=filter(data, !is.na(Latitude), !is.na(Longitude), !is.na(Year))
+  # Group data
+  rtn=group_by(filtered, speciesScientificName, Gear, Year, Latitude, Longitude)
+  
+  rtn$Species=gsub(" ","\n",rtn$speciesScientificName)
+  
+  rtn}
+
+cSmry=catchSmry(cpue)
+```
+
+```{r, theme}
+theme_my<-function(size=20) {
+  theme_minimal() +
+    theme(text = element_text(size=size),
+          plot.title = element_text(face = "bold", size = size+2),
+          axis.title = element_text(size = size-1),
+          legend.position = "bottom",
+          legend.title = element_blank(),
+          panel.grid.major = element_line(color = "gray80"),
+          panel.grid.minor = element_blank())}
+```
+
+### Catch Weight by Gear and Year Map
+
+
+
+### Species Distribution by Length
+
+```{r species-distribution-length}
+biola <- subset(biol, select = c("OPE_ID", "MinLength","MaxLength","NbFemale","NbMale",
+                               "NbUndetermined","Length", "Sex"))
+df3   <- merge(cpue, biola, by = "OPE_ID")
+
+ggplot(subset(df3, !is.na(Length)), aes(x = Length)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  labs(title = "Distribution of Fish Sizes", x = "Length", y = "Count")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Species Distribution by Length
+
+### Gender Distribution
+
+```{r gender-distribution}
+table(df3$speciesScientificName, df3$Sex, useNA="always")
+df3$Sex[df3$Sex=="F "]   <- "F"
+
+# Aggregating data by species and gender
+gender_distribution <- df3 %>%
+  group_by(speciesScientificName, Sex) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+ggplot(gender_distribution, aes(x = Sex, y = Count, fill = Sex)) +
+  geom_bar(stat = "identity") +
+  theme_my() +
+  labs(title = "Gender Distribution by Species", x = "Gender", y = "Count") +
+  scale_fill_brewer(palette = "Spectral", name = "Gender")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Gender Distribution
+
+### Catch Weight Over Time
+
+```{r catch-weight-over-time}
+catch_summary <- cpue %>%
+  group_by(Year, speciesScientificName) %>%
+  summarize(TotalCatchWeight = sum(catchWeight, na.rm = TRUE), .groups = 'drop')
+
+ggplot(catch_summary, aes(x = Year, y = TotalCatchWeight, color = speciesScientificName)) +
+  geom_line() +
+  theme_my() +
+  labs(title = "Catch Weight by Species Over Time", x = "Year", y = "Total Catch Weight") +
+  theme(legend.position = "bottom")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Catch Weight Over Time
+
+### Overall Catch Weight Over Time
+
+```{r overall-catch-weight-over-time}
+overall_catch <- catch_summary %>%
+  group_by(Year) %>%
+  summarize(TotalCatchWeight = sum(TotalCatchWeight, na.rm = TRUE), .groups = 'drop')
+
+ggplot(overall_catch, aes(x = Year, y = TotalCatchWeight)) +
+  geom_line() +
+  theme_my() +
+  labs(title = "Overall Catch Weight Over Time", x = "Year", y = "Total Catch Weight")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Overall Catch Weight Over Time
+
+```{r, map1}
+summarized_catch <- cpue %>%
+  filter(!is.na(Latitude) & !is.na(Longitude) & !is.na(Year)) %>%
+  group_by(speciesScientificName, Gear, Year, Latitude, Longitude) %>%
+  summarize(TotalCatch = sum(catchWeight, na.rm = TRUE))
+
+world_map <- borders("worldHires", colour = "gray50", fill = "gray90")
+
+ggplot(ddply(summarized_catch,.(Longitude,Latitude,Gear), with, 
+             data.frame(data=sum(TotalCatch))))+
+        world_map +
+        geom_point(aes(x=Longitude, y=Latitude, size=data), alpha=0.8) +
+        coord_fixed(1.3, xlim = c(30, 100), ylim = c(-50, 5)) +
+        theme_my()+
+  facet_wrap(~Gear)
+```
+
+**Figure `r iFig=iFig+1; iFig`** 
+
