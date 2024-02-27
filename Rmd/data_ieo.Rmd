@@ -78,9 +78,9 @@ biol$mat=substr(biol$mat,nchar(biol$mat),1)
 
 
 ```{r}
-morph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
+pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
                  startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-gonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
+pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
                  startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
 ```
 
