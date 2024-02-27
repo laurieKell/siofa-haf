@@ -1,0 +1,91 @@
+---
+title: "SIOFA Sharks"
+subtitle: "IEO Data"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+## Introduction
+
+This document reads in and provides a summary of the shark dataset, which includes information on shark captures such as species, length, weight, sex, maturity, and other relevant data. The aim is to understand the diversity of species, the types of data collected, and assess the quality and coverage of the dataset.
+
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path= "cache/data_ieo/",
+               fig.path  ="../figs/data_ieo/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+iTab=0
+```
+
+```{r lib, include=FALSE}
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales, better for visibility
+```
+
+```{r, setwd, eval=FALSE}
+setwd("/home/laurie/Desktop/active/sofia-haf/Rmd")
+```
+
+## Dataset Overview
+```{r, data}
+load("../data/Sharks_biological.Rdata")
+biol=as.data.frame(biol)
+names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
+
+load("../data/Sharks_logbooks.Rdata")
+cpue=as.data.frame(cpue)
+
+biol=merge(biol,cpue[,c("cod_set","month","year","Area")],by=c("cod_set"))
+names(biol)=tolower(names(biol))
+```
+
+
+## Maturity 
+
+### Females
+1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 7: post-natal, spent; 8: Re-starting development
+
+### Males
+1: immature; 2: developing; 3: mature; 4: active
+
+```{r, data}
+mat=setNames(seq(4),c("A","B","C","D"))
+biol$mat[biol$mat%in%names(mat)]=mat[biol$mat[biol$mat%in%names(mat)]]
+biol$mat=substr(biol$mat,nchar(biol$mat),1)
+```
+
+
+```{r}
+morph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+gonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+```
+
+### Species
+
+```{r species-count}
+sort(unique(biol$Scientific_name))
+```
