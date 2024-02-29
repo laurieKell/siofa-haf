@@ -1,2 +1,4 @@
-Sharks_biological.Rdata
-Sharks_logbooks.Rdata
+*.Rdata
+*.RData
+results
+inputs
