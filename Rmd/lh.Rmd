@@ -172,7 +172,7 @@ sppSiofa=c("Centroscymnus coelolepis","Pailona commun","Portugese dogfish","CYO"
            "Chlamydoselachus anguineus","Requin lézard","Frilled shark","HXC",
            "Hexanchus nakamurai","Requin griset","Bigeyed six-gill shark","HXN",
            "Etmopterus pusillus","Sagre nain","Smooth lanternshark","ETP",
-           "Somniosus antarcticus","Requin dormeur antarctique","Southern sleeper shark","SON",
+           "Somniosus antarcticus","Requin dormeur antarctique","Southern sleeper `shark","SON",
            "Mitsukurina owstoni","Requin lutin","Goblin shark","LMO")
 sppSiofa=as.data.frame(t(array(sppSiofa,c(4,20))))
 sppSiofa=cbind(ldply(strsplit(sppSiofa[,1]," ")),sppSiofa)
@@ -186,7 +186,7 @@ sink(file=NULL)
 nulldev()
 priors=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
-  rtn=try(Plot_taxa(Search_species(Genus=Genus, Species=Species)$match_taxonomy,mfrow=c(3,2)))
+  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2)))
   
   if ("try-error"%in%is(rtn)) return(NULL)
   data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
@@ -267,9 +267,10 @@ save(mrag,file="../data/results/mrag.RData")
 ```
 
 ```{r, cor}
-dat=cast(siofa,Genus+Species~trait,value="data") 
+lh=cast(siofa,Genus+Species~trait,value="data") 
+save(lh,file="../data/lh.RData")
 
-pr1=ggpairs(transform(dat[,c("Loo","K","Lm","G","M","r","h")],'l50:loo'=Lm/Loo)[c(1:3,7,8,4:6)])+
+pr1=ggpairs(transform(lh[,c("Loo","K","Lm","G","M","r","h")],'l50:loo'=Lm/Loo)[c(1:3,7,8,4:6)])+
               #mapping = ggplot2::aes(color=rank(dat$hmsy)<6))+
    theme_bw()+theme(legend.position = "none", 
                     axis.title.y = element_text(colour='NA'), 

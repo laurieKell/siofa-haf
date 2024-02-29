@@ -42,15 +42,52 @@ library(ggplot2)   # For plotting
 library(ggpubr)    # For plotting
 library(mapdata)   # For map-based data
 library(viridis)   # For color scales, better for visibility
+
+library(FLCore)
+library(ggplotFL)
+
+theme_my<-function(size=20) {
+  theme_minimal() +
+    theme(text = element_text(size=size),
+          plot.title = element_text(face = "bold", size = size+2),
+          axis.title = element_text(size = size-1),
+          legend.position = "bottom",
+          legend.title = element_blank(),
+          panel.grid.major = element_line(color = "gray80"),
+          panel.grid.minor = element_blank())}
+
+theme_set(theme_my())
 ```
 
 ```{r, setwd}
-setwd("/home/laurie/Desktop/projects/siofa/Rmd")
+`setwd("/home/laurie/Desktop/projects/siofa/Rmd")
 ```
 
+```{r}
+# Function to convert species names into abbreviated factor
+sppAbbrv<-function(spp) {
+  # Split the genus and species names
+  names=strsplit(spp, " ")
+  
+  abbrv=sapply(names, function(name) {
+    paste0(substr(name[1], 1, 1), ". ", name[2])})}
+
+catchSmry<-function(data) {
+  # Filter out NAs
+  filtered=filter(data, !is.na(Latitude), !is.na(Longitude), !is.na(Year))
+  # Group data
+  rtn=group_by(filtered, speciesScientificName, Gear, Year, Latitude, Longitude)
+  rtn$Species=gsub(" ","\n",rtn$speciesScientificName)
+  
+  rtn}
+```
+
+# Data
+
+## SIOFA
+
 ```{r, data}
-# Data Preparation
-# Load data from an Excel file into data frames
+# Load data from Excel file into data frames
 cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
                  startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
 biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
@@ -68,36 +105,40 @@ cpue$Year       =year(cpue$Date)
 cpue=subset(cpue,speciesScientificName=="Centroscymnus coelolepis")
 biol=subset(biol,speciesScientificName=="Centroscymnus coelolepis")
 
-catchSmry<-function(data) {
-  # Filter out NAs
-  filtered=filter(data, !is.na(Latitude), !is.na(Longitude), !is.na(Year))
-  # Group data
-  rtn=group_by(filtered, speciesScientificName, Gear, Year, Latitude, Longitude)
-  
-  rtn$Species=gsub(" ","\n",rtn$speciesScientificName)
-  
-  rtn}
-
-cSmry=catchSmry(cpue)
+siofa=list("biol"=biol,"cpue"=cpue,"cSmry"=catchSmry(cpue))
 ```
 
-```{r, theme}
-theme_my<-function(size=20) {
-  theme_minimal() +
-    theme(text = element_text(size=size),
-          plot.title = element_text(face = "bold", size = size+2),
-          axis.title = element_text(size = size-1),
-          legend.position = "bottom",
-          legend.title = element_blank(),
-          panel.grid.major = element_line(color = "gray80"),
-          panel.grid.minor = element_blank())}
+## IEO
+
+```{r}
+load("../data/inputs/Sharks_biological.Rdata")
+biol=as.data.frame(biol)
+names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
+
+load("../data/inputs/Sharks_logbooks.Rdata")
+cpue=as.data.frame(cpue)
+
+biol=merge(biol,cpue[,c("cod_set","month","year","Area")],by=c("cod_set"))
+names(biol)=tolower(names(biol))
+
+mat=setNames(seq(4),c("A","B","C","D"))
+biol$mat[biol$mat%in%names(mat)]=mat[biol$mat[biol$mat%in%names(mat)]]
+biol$mat=substr(biol$mat,nchar(biol$mat),1)
+
+biol=transform(biol,spp=factor(sppAbbrv(species)))
+biol=transform(biol,mature=ifelse(as.numeric(mat)>=3,1,0))
+
+cpue=subset(cpue,species=="Centroscymnus coelolepis")
+biol=subset(biol,species=="Centroscymnus coelolepis")
+
+ieo=paste("biol"=biol,"cpue"=cpue)
 ```
 
-### Catch Weight by Gear and Year Map
+```{r}
+save(ieo,siofa,file="../data/pDog.RData")
+```
 
-
-
-### Species Distribution by Length
+### Length Distributions
 
 ```{r species-distribution-length}
 biola <- subset(biol, select = c("OPE_ID", "MinLength","MaxLength","NbFemale","NbMale",

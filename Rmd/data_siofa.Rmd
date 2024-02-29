@@ -1,6 +1,6 @@
 ---
 title: "SIOFA Sharks"
-subtitle: "IEO Data"
+subtitle: "SIOFA Data"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
@@ -8,9 +8,7 @@ output: html_document
 
 ## Introduction
 
-This document reads in and provides a summary of the shark dataset collected by IEO. Thisincludes information on shark captures such as species, length, weight, sex, maturity, and other relevant data. The aim is to understand the diversity of species, the types of data collected, and assess the quality and coverage of the dataset.
-
-Maturity data are also available for Portuguese dogfish.
+This document reads in and provides a summary of the shark dataset provided by SIOFA. This includes information on shark captures such as species, length, weight, sex, maturity, and other relevant data. The aim is to understand the diversity of species, the types of data collected, and assess the quality and coverage of the dataset.
 
 ```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -24,8 +22,8 @@ opts_chunk$set(cache     =TRUE,
                echo      =FALSE, 
                eval      =TRUE,
                cache     =TRUE,
-               cache.path= "cache/data_ieo/",
-               fig.path  ="../figs/data_ieo/",
+               cache.path=  "cache/data_siofa/",
+               fig.path  ="../figs/data_siofa/",
                fig.width =12,
                fig.height=8,
                dev       ="png")
@@ -82,6 +80,66 @@ biol=transform(biol,mature=ifelse(as.numeric(mat)>=3,1,0))
 save(biol,file="../data/biolIEO.RData")
 ```
 
+### Length data
+```{r}
+load("../data/biolIEO.RData")
+
+# Number of observations per category
+nobs=ddply(biol,.(spp), with, data.frame(n=length(len)))
+biol=left_join(biol, nobs, by="spp")
+
+ggplot(biol, aes(len)) +
+  geom_histogram(bins=50, fill="skyblue", color="blue") +
+  facet_wrap(~spp, scales="free_y", ncol=3) +
+  #scale_y_continuous(breaks=function(x) {c(0,round(max(x,na.rm=TRUE)))})+  
+  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+            position = position_nudge(x=-0.5, y=-0.5), hjust=1, vjust=1)+
+  xlab("Length (cm)")+ylab("")+ 
+  theme(legend.position = "bottom", 
+                    axis.title.y = element_blank(), 
+                    axis.text.y  = element_blank(), 
+                    axis.ticks.y = element_blank())
+```
+
+
+```{r}
+load("../data/lh.RData")
+
+dat=subset(biol,n>150&year>2018&sex%in%c("M","F"))
+dat=dat[grep("spp",dat$spp,invert=TRUE),]
+
+load("/home/laurie/Desktop/active/sofia-haf/data/lh.RData")
+lh=transform(lh,spp=paste(substr(Genus,1,1),". ",Species,sep=""))
+
+sexRatio=ddply(dat, .(spp,year), with, data.frame(M=sum(sex=="M"),F=sum(sex=="F")))
+sexRatio=transform(sexRatio,ratio=F/(M+F))
+
+gghistogram(dat,x="len",fill="sex",position="stack",bins=50)+
+  facet_grid(spp~year,scale="free_y")+
+  geom_vline(aes(xintercept=exp(Loo)),
+             data=subset(lh,spp%in%unique(dat$spp)),col="blue")+
+  geom_vline(aes(xintercept=exp(Lm)), data=subset(lh,spp%in%unique(dat$spp)),col="red")+
+  #scale_y_continuous(breaks=function(x) {round(max(x, na.rm=TRUE))})+
+  theme(legend.position = "bottom", 
+                    axis.title.y = element_blank(), 
+                    axis.text.y  = element_blank(), 
+                    axis.ticks.y = element_blank())+
+  xlab("Length (cm)")+
+  geom_text(data=sexRatio,aes(label=round(ratio,2), x=Inf, y=Inf), 
+            position = position_nudge(x=-0.5, y=-0.5), hjust=1, vjust=1)
+```
+
+```{r}
+flens=ddply(biol,.(spp,year,month,len), with,data.frame(data=length(cod_set)))
+flens=FLQuants(dlply(flens,.(spp), with, 
+              as.FLQuant(data.frame(data=data,len=as.numeric(len),year=year,season=month))))
+flens=FLQuants(llply(flens, function(x){
+    x[is.na(x)]=0
+    x}))
+  
+plotLengths(flens[[1]])
+```
+
 
 ## Maturity 
 
@@ -91,28 +149,33 @@ save(biol,file="../data/biolIEO.RData")
 ### Males
 1: immature; 2: developing; 3: mature; 4: active
 
+
+```{r, mat}
+mat =subset(biol,!is.na(mature))
+nobs=ddply(mat,.(spp),     with, data.frame(n =length(mature)))
+nob2=ddply(mat,.(spp,sex), with, data.frame(n2=length(mature)))
+mat =merge(merge(mat,nobs),nob2)
+
+ggplot(subset(mat,sex=="F"))+
+  #geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+  #          position = position_nudge(x=-0.5, y=-0.5), hjust=1, vjust=1)+
+  geom_histogram(aes(len,fill=ac(mature)),position='fill')+
+  facet_wrap(~spp)
+
+ggplot(subset(mat,sex=="M"))+
+  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+            position = position_nudge(x=-0.5, y=-0.5), hjust=1, vjust=1)+
+  geom_histogram(aes(len,fill=ac(mature)),position='fill')+
+  facet_wrap(~spp)
+```
+
+
+
+
 ```{r}
 model=glm(mature~len+sex+len:sex+len:Type, data=biol, family=binomial)
 mat$hat=predict(model,type="response")
 
-```
-
-
-```{r, mat}
-pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-```
-
-```{r, mat-ieo}
-mat=rbind.fill(cbind(Type="Morph",pDogMorph),
-               cbind(Type="Gonad",pDogGonad))
-mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))
-mat$Type=factor(mat$Type)
-
-ggplot(mat)+
-  geom_line(aes(len,fitted,col=sex,linetype=Type))
 ```
 
 #### Fit logistic regression model
@@ -284,55 +347,5 @@ abline(0,1)
 ### Species
 ```{r species-count}
 sort(unique(biol$Scientific_name))
-```
-
-### Length data
-```{r}
-load("../data/biolIEO.RData")
-
-# Number of observations per category
-nobs=ddply(biol,.(spp), with, data.frame(n=length(len)))
-biol=left_join(biol, nobs, by="spp")
-
-ggplot(biol, aes(len)) +
-  geom_histogram(bins=50, fill="skyblue", color="blue") +
-  facet_wrap(~spp, scales="free_y", ncol=3) +
-  #scale_y_continuous(breaks=function(x) {c(0, round(max(x, na.rm = TRUE)))})+  
-  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
-            position = position_nudge(x=-0.5, y=-0.5), hjust=1, vjust=1)+
-  xlab("Length (cm)")+ylab("")
-```
-
-
-```{r}
-load("../data/lh.RData")
-
-dat=subset(biol,n>200&year>2018&sex%in%c("M","F"))
-dat=dat[grep("spp",dat$spp,invert=TRUE),]
-
-load("/home/laurie/Desktop/active/sofia-haf/data/lh.RData")
-lh=transform(lh,spp=paste(substr(Genus,1,1),". ",Species,sep=""))
-
-gghistogram(dat,x="len",fill="sex",position="stack",bins=30)+
-  facet_grid(spp~year,scale="free_y")+
-  geom_vline(aes(xintercept=exp(Loo)),data=subset(lh,spp%in%unique(dat$spp)),col="blue")+
-  geom_vline(aes(xintercept=exp(Lm)), data=subset(lh,spp%in%unique(dat$spp)),col="red")+
-  #scale_y_continuous(breaks=function(x) {round(max(x, na.rm=TRUE))})+
-  theme(legend.position = "bottom", 
-                    axis.title.y = element_blank(), 
-                    axis.text.y  = element_blank(), 
-                    axis.ticks.y = element_blank())+
-  xlab("Length (cm)")
-```
-
-```{r}
-flens=ddply(biol,.(spp,year,month,len), with,data.frame(data=length(cod_set)))
-flens=FLQuants(dlply(flens,.(spp), with, 
-              as.FLQuant(data.frame(data=data,len=as.numeric(len),year=year,season=month))))
-flens=FLQuants(llply(flens, function(x){
-    x[is.na(x)]=0
-    x}))
-  
-plotLengths(flens[[1]])
 ```
 

@@ -1,0 +1,383 @@
+---
+title: "Data Analysis of SIOFA Deep Sea Sharks"
+author: "Mariana"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+#bibliography: /home/laurie/pCloudDrive/refs.bib
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/siofa/",
+               fig.path  ="../figs/siofa/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+
+```{r libs}
+# Load libraries
+library(openxlsx)  # For reading Excel files 
+library(dplyr)     # For data manipulation
+library(tidyr)     # For data manipulation
+library(ggplot2)   # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales
+library(lubridate) # For dates
+```
+
+# Introduction
+
+This report presents an analysis of the SIOFA Deep Sea Sharks data, focusing on data preparation, analysis, and visualization. The primary objective is to get meaningful patterns and trends from the data, which can inform decisions and strategies related to shark conservation and fishing practices in the SIOFA area.
+
+```{r clean}
+# Start with a clean environment
+rm(list = ls())
+```
+
+```{r path, eval=FALSE}
+# Set path
+setwd("C:/Users/dema008/Desktop/SIOFA_DEEP_SEA_SHARKS")
+setwd("~/Desktop/active/sofia-haf/Rmd")
+```
+
+
+# Data Preparation
+
+This section involves loading the data from the SIOFA Deep Sea Sharks dataset and conducting preliminary data cleaning and formatting. This includes the transformation of time data into a readable format and the extraction of the year from date records. 
+
+```{r data-preparation}
+# Load Data 
+cpue <- read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", sheet=2, startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+biol <- read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", sheet=3, startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+
+# Adjust time format
+adjust_time_format<-function(time)
+  format(as.POSIXct(time * 86400, origin = "1970-01-01", tz = "UTC"), "%H:%M:%S")
+
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$Time       =adjust_time_format(cpue$Time)
+cpue$Year       =year(cpue$Date)
+```
+
+
+# Maps of Catch Locations
+
+This section focuses on visualizing the catch weight per year and gear on maps. We'll create a series of maps that display the distribution and intensity of fishing activities over different years and using various fishing gears.
+
+## Catch weight per year and gear
+
+The data is summarized by species, gear, and year to visualize the total catch weight in different locations. The first map provides an overview of the catch weight distribution for all years.
+
+```{r catch-weight-map}
+# Summarize weight per year and gear
+summarized_catch <- cpue %>%
+  filter(!is.na(Latitude) & !is.na(Longitude) & !is.na(Year)) %>%
+  group_by(speciesScientificName, Gear, Year, Latitude, Longitude) %>%
+  summarize(TotalCatch = sum(catchWeight, na.rm = TRUE))
+
+# World map boundaries
+world_map <- borders("worldHires", colour = "gray50", fill = "gray90")
+
+# Plotting the map for all gears and years
+ggplot() +
+  world_map +
+  geom_point(data = subset(summarized_catch), aes(x = Longitude, y = Latitude, size = TotalCatch, color = Gear), alpha = 0.8) +
+  coord_fixed(1.3, xlim = c(30, 100), ylim = c(-50, 5)) +
+  scale_size_continuous(name = "Total Catch Weight") +
+  scale_color_viridis(discrete = TRUE, name = "Gear Type") +
+  ggtitle("Total Catch Weight by Gear") +
+  theme_minimal()
+```
+
+## Individual maps per species, gear, and year
+
+To further analyze the data, we create individual maps for each combination of year, gear type, and species. These maps provide detailed insights into the specific fishing activities.
+
+```{r plot-per-species-gear-year}
+# Variables for unique years, gears, and species
+unique_years <- unique(summarized_catch$Year)
+unique_gears <- unique(summarized_catch$Gear)
+unique_species <- unique(summarized_catch$speciesScientificName)
+
+# Settings for plot aesthetics
+title_size <- 14  # Size for main title
+axis_title_size <- 12  # Size for axis titles
+legend_text_size <- 9  # Size for legend text
+
+# Loop through each year and gear to create plots
+for (year in unique_years) {
+  for (gear in unique_gears) {
+    # Filter data for the specific year and gear
+    year_gear_data <- subset(summarized_catch, Year == year & Gear == gear)
+    # Check if the year_gear_data is not empty
+    if (nrow(year_gear_data) > 0) {
+      # Create the plot
+      p <- ggplot() +
+        world_map +
+        geom_point(data = year_gear_data, aes(x = Longitude, y = Latitude, size = TotalCatch, color = speciesScientificName), alpha = 0.8) +
+        coord_fixed(1.3, xlim = c(30, 100), ylim = c(-50, 5)) +
+        scale_size_continuous(name = "Total Catch Weight") +
+        scale_color_viridis(discrete = TRUE, name = "Species") +
+        ggtitle(paste("Catch Weight in", year, "using", gear)) +
+        theme_minimal() +
+        theme(plot.background = element_rect(fill = "white", colour = "white"),
+              panel.background = element_rect(fill = "white", colour = "white"),
+              legend.position = "right",
+              legend.background = element_rect(fill = "white", colour = "black"),  # Add a box with white background and black border
+              legend.key = element_blank(),
+              legend.text = element_text(size = legend_text_size),
+              legend.title = element_text(size = legend_text_size),
+              plot.title = element_text(size = title_size, face = "bold"),
+              axis.title.x = element_text(size = axis_title_size, face = "bold"),
+              axis.title.y = element_text(size = axis_title_size, face = "bold")) +
+        scale_x_continuous(limits = c(30, 100)) +
+        scale_y_continuous(limits = c(-50, 5)) +
+        labs(title = paste("Catch Weight in", year, "using", gear), x = "Longitude", y = "Latitude")
+      
+      # Print the plot
+      print(p)
+      
+    }
+  }
+}
+
+
+```
+
+
+# Species Composition by Weight and Number
+
+This section focuses on analyzing the species composition by both weight and number. We will create visualizations to understand these distributions better.
+
+```{r total-catch-weight-species}
+# Aggregate species weight by year
+species_summary <- cpue %>%
+  group_by(Year, speciesScientificName) %>%
+  summarize(TotalCatchWeight = sum(catchWeight, na.rm = TRUE))
+
+# Create bar plot on catch weight composition
+ggplot(species_summary, aes(x = reorder(speciesScientificName, TotalCatchWeight), y = TotalCatchWeight, fill = speciesScientificName)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white"),
+        legend.position = "none") +
+  labs(x = "Species", y = "Total Catch Weight", title = "Catch Weight Composition by Species")
+
+```
+
+```{r total-catch-number-species}
+
+# Aggregate species numbers by year
+species_summary <- cpue %>%
+  group_by(Year, speciesScientificName) %>%
+  summarize(TotalCatchNumbers = sum(catchNumber, na.rm = TRUE))
+
+# Create bar plot on catch numbers composition
+ggplot(species_summary, aes(x = reorder(speciesScientificName, TotalCatchNumbers), y = TotalCatchNumbers, fill = speciesScientificName)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white"),
+        legend.position = "none") +
+  labs(x = "Species", y = "Total Catch Numbers", title = "Catch Numbers Composition by Species")
+
+```
+
+
+# Species Distribution by Length
+
+This section is dedicated to exploring the distribution of fish sizes within the dataset. We first present a general overview of the fish size distribution across all years. Then we create multiple plots to understand how this distribution varies across different species and over time.This approach allows us to uncover patterns and shifts in size distribution, potentially indicative of ecological changes or impacts of fishing practices.
+
+## Distribution of fish sizes
+
+This initial analysis provides a broad view of the size distribution of fishes in the dataset. By creating a histogram of the lengths of all fish samples, we can observe common size ranges and identify any prominent trends in size distribution. 
+
+```{r species-distribution-by-length}
+load("../data/lh.RData")
+
+# Data preparation
+biola <- subset(biol, select = c("OPE_ID", "MinLength", "MaxLength", "NbFemale", "NbMale",
+                               "NbUndetermined", "Length", "Sex"))
+df3 <- merge(cpue, biola, by = "OPE_ID")
+
+# first combine genus and species into a new column
+lh$combinedSpecies <- paste(lh$Genus, lh$Species)
+
+# now merge lh and df3 datasets based on the scientific name of each species
+df3_lh <- merge(df3, lh, by.x = "speciesScientificName", by.y = "combinedSpecies", all.x = TRUE)
+
+# Plotting distribution of fish sizes
+ggplot(subset(df3, !is.na(Length)), aes(x = Length)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  #facet_wrap(~speciesScientificName) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Distribution of Fish Sizes", x = "Length", y = "Count")
+```
+
+## Distribution of Fish Sizes by Species Over Time
+
+Here we specifically focus on the size distribution across different species, analyzed year by year. This detailed examination is facilitated by looping through each species, creating histograms that illustrate size distributions for each year. The inclusion of LInf values in these plots offers valuable biological reference points allowing for a more nuanced understanding of the growth potential of each species
+
+```{r species-distribution-over-time}
+
+# Plotting distribution of fish sizes by species over time
+
+# Get a list of unique species
+species_list <- unique(df3_lh$speciesScientificName)
+
+# Loop through each species
+for (species in species_list) {
+  # Skip if species is NA
+  if (is.na(species)) next
+
+  # Subset the data for the current species
+  species_data <- subset(df3_lh, speciesScientificName == species & !is.na(Length))
+
+  if (nrow(species_data) > 0) {
+    # Create the plot
+    p <- ggplot(species_data, aes(x = Length)) +
+      geom_histogram(bins = 30, fill = "blue", color = "black") +
+      geom_vline(data=subset(species_data, !is.na(Loo)), aes(xintercept=exp(Loo)),
+                 color="green", linetype="dashed") +
+      geom_vline(data=subset(species_data, !is.na(Lm)), aes(xintercept=exp(Lm)),
+                 color="blue", linetype="dashed") +
+      facet_grid(~Year, scales = "free_x") +
+      coord_flip()+
+      theme_minimal() +
+      theme(plot.background = element_rect(fill = "white", colour = "white"),
+            panel.background = element_rect(fill = "white", colour = "white")) +
+      labs(title = paste("Distribution of Fish Sizes for", species, "by Year"), x = "Length", y = "Count")
+
+    # Print the plot
+    print(p)
+  } else {
+    message(paste("No valid data for species", species))
+  }
+}
+
+```
+
+
+# Gender Distribution
+
+In this section, we analyze the gender distribution within the species. We will aggregate the data and create bar plots to observe the gender distribution for all species and individually for each species.  This exploration is crucial for understanding the gender dynamics within the populations of SIOFA deep-sea sharks.
+
+## Overall gender distribution
+
+```{r gender-distribution}
+
+# Cleaning up the sex variable
+df3$Sex[df3$Sex == "F "] <- "F"  
+
+# Displaying a table of species and gender distribution
+table(df3$speciesScientificName, df3$Sex, useNA = "always")
+
+# Aggregating data by species and gender
+gender_distribution <- df3 %>%
+  group_by(speciesScientificName, Sex) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+# Creating a bar plot for overall gender distribution
+ggplot(subset(gender_distribution, !is.na(Sex)), aes(x = Sex, y = Count, fill = Sex)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Gender Distribution by Species", x = "Gender", y = "Count") +
+  scale_fill_brewer(palette = "Spectral", name = "Gender")
+```
+
+## Gender distribution by each species
+
+```{r gender-distribution-each-species}
+
+# Creating a faceted bar plot for gender distribution by species
+ggplot(subset(gender_distribution, !is.na(Sex)), aes(x = Sex, y = Count, fill = Sex)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~speciesScientificName) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Gender Distribution by Species", x = "Gender", y = "Count") +
+  scale_fill_brewer(palette = "Spectral", name = "Gender")
+
+```
+
+
+# Catch Weight Over Time
+
+In this part of the report, we analyse the trends of catch weight over time, providing insights into the fluctuations and changes in fishing yields. This analysis is key to understanding the long-term sustainability of shark populations and the impact of fishing practices.
+
+## Catch weight by species over time
+
+We begin by examining the catch weight trends for each species over the years. By plotting the total catch weight for each species across different years, we can observe the fluctuations in catches, potentially indicating changes in species abundance or shifts in fishing efforts.
+
+```{r catch-weight-by-species-over-time}
+
+# Summarizing catch weight by species over time
+catch_summary <- cpue %>%
+  group_by(Year, speciesScientificName) %>%
+  summarize(TotalCatchWeight = sum(catchWeight, na.rm = TRUE), .groups = 'drop')
+
+# Plotting catch weight by species over time
+ggplot(catch_summary, aes(x = Year, y = TotalCatchWeight, color = speciesScientificName)) +
+  geom_line() +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Catch Weight by Species Over Time", x = "Year", y = "Total Catch Weight") +
+  theme(legend.position = "bottom")
+
+```
+
+## Overall catch weight over Time
+
+Here we look at the overall catch weight trends. This broader perspective allows us to assess the general health and sustainability of the shark populations in the study area. The line graph of total catch weight across years serves as an indicator of the overall impact of fishing activities over time, revealing trends that might be obscured when focusing solely on individual species.
+
+```{r overall-catch-weight}
+
+# Summarizing overall catch weight over time
+overall_catch <- catch_summary %>%
+  group_by(Year) %>%
+  summarize(TotalCatchWeight = sum(TotalCatchWeight, na.rm = TRUE), .groups = 'drop')
+
+# Plotting overall catch weight over time
+ggplot(overall_catch, aes(x = Year, y = TotalCatchWeight)) +
+  geom_line() +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Overall Catch Weight Over Time", x = "Year", y = "Total Catch Weight")
+
+```
+
+
+
+
+

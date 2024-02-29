@@ -1,0 +1,551 @@
+---
+title: "**SIOFA Sharks**"
+title: "Data Analysis of SIOFA Deep Sea Sharks"
+author: "Mariana"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+#bibliography: /home/laurie/pCloudDrive/refs.bib
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/ieo/",
+               fig.path  ="../figs/ieo/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+
+```{r libs}
+# Load libraries
+library(openxlsx)  # For reading Excel files
+library(dplyr)     # For data manipulation
+library(tidyr)     # For data manipulation
+library(ggplot2)   # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales
+```
+
+# Introduction
+
+This document provides a summary of the shark dataset, which includes information 
+on shark captures such as species, length, weight, sex, maturity, and other relevant 
+data. The aim is to understand the diversity of species, the types of data collected, 
+and assess the quality and coverage of the dataset.
+
+```{r clean}
+rm(list = ls())
+```
+
+
+```{r path, eval=FALSE}
+# Set path
+setwd("C:/Users/dema008/Desktop/SIOFA_DEEP_SEA_SHARKS")
+setwd("~/Desktop/active/sofia-haf/Rmd")
+```
+
+
+# Data Preparation
+
+This section is dedicated to preparing the shark datasets for analysis. It includes loading the datasets, standardizing the variables, and ensuring the data is in a format suitable for analysis. 
+
+```{r data-preparation}
+# Load data
+load("../data/inputs/Sharks_biological.Rdata") #biol
+load("../data/inputs/Sharks_logbooks.Rdata") #cpue
+
+# Standardize sex variable:
+table(biol$sex, useNA = "always")
+
+# Filtering out rows where 'sex' is "3", "2", "4", "5", or "H"
+biol <- biol %>%
+  filter(!sex %in% c("3", "2", "4", "5", "H"))
+
+#Add categories for maturity
+
+### Females
+#1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 
+#7: post-natal, spent; 8: Re-starting development
+
+### Males
+#1: immature; 2: developing; 3: mature; 4: active
+
+table(biol$mat, useNA = "always")
+
+# Ensuring 'mat' is a character before replacement
+biol$mat <- as.character(biol$mat)  
+
+biol$mat[biol$mat %in% c("A", "A/1", "F1", "M1", "N1")] <- "1"
+biol$mat[biol$mat %in% c("B", "B/2", "F2", "M2")]       <- "2"
+biol$mat[biol$mat %in% c("C", "C/3", "F3", "M3")]       <- "3"
+biol$mat[biol$mat %in% c("D", "D/4", "F4", "M4")]       <- "4"
+biol$mat[biol$mat %in% c("E/5", "F5")]                  <- "5"
+biol$mat[biol$mat %in% c("F/6", "F6")]                  <- "6"
+biol$mat[biol$mat %in% c("G", "F7", "G/7")]             <- "7"
+biol$mat[biol$mat=="F8"]  <- "8"
+
+# Convert 'mat' to numeric
+biol$mat <- as.numeric(biol$mat)
+
+# Define maturity descriptions for females
+female_mat_desc <- c("immature", "maturing", "mature", "uterine developing", 
+                     "differentiating", "expecting", "post-natal, spent", "re-starting development")
+
+# Define maturity descriptions for males
+male_mat_desc <- c("immature", "developing", "mature", "active")
+
+# Update the biol dataset
+biol <- biol %>%mutate(
+    MaturityDescription=
+      ifelse(sex == "F",
+        ifelse(mat>=1 & mat<=length(female_mat_desc), female_mat_desc[mat], NA),
+          ifelse(sex == "M",
+            ifelse(mat>=1 & mat<=length(male_mat_desc), male_mat_desc[mat], NA),
+      as.character(mat))))
+```
+
+
+# Maps of Catch Locations
+
+This section focuses on visualizing and analyzing the geographical distribution of shark catches. Using maps, it aims to show where different shark species have been caught, the quantity of catches, and how these patterns vary based on the fishing gear used and over different years. This spatial analysis is crucial for understanding fishing hotspots, species distribution, and the impact of various fishing gears on different shark species.
+
+## Catch weight per year and gear
+
+We create map-based plots that combine geographic coordinates with catch data. These visualizations serve as a tool for understanding fishing patterns and their impact on shark populations, highlighting areas of intense fishing activity and shifts in fishing practices over time.
+
+```{r location-maps}
+# Summarize weight per year and gear
+summarized_catch <- cpue %>%
+  filter(!is.na(y3) & !is.na(x3) & !is.na(year)) %>%
+  group_by(N_Cientifico, Arte, year, x3, y3) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE))
+
+# Rename year
+summarized_catch <- rename(summarized_catch, Year = year)
+
+# Add world map
+world_map <- borders("worldHires", colour = "gray50", fill = "gray90")
+
+# Variables for unique years, gears, and species
+unique_years <- unique(summarized_catch$Year)
+unique_gears <- unique(summarized_catch$Arte)
+unique_species <- unique(summarized_catch$N_Cientifico)
+
+# Settings for plot aesthetics
+title_size <- 14  # Size for main title
+axis_title_size <- 12  # Size for axis titles
+legend_text_size <- 9  # Size for legend text
+
+# Loop through each year and gear to create plots
+for (year in unique_years) {
+  for (gear in unique_gears) {
+    # Filter data for the specific year and gear
+    year_gear_data <- subset(summarized_catch, Year == year & Arte == gear)
+    # Check if the year_gear_data is not empty
+    if (nrow(year_gear_data) > 0) {
+      # Create the plot with adjusted settings
+      p <- ggplot() +
+        world_map +
+        geom_point(data = year_gear_data, aes(x = x3, y = y3, size = TotalCatch, color = N_Cientifico), alpha = 0.8) +
+        coord_fixed(1.3, xlim = c(30, 100), ylim = c(-50, 5)) +
+        scale_size_continuous(name = "Total Catch Weight") +
+        scale_color_viridis(discrete = TRUE, name = "Species") +
+        ggtitle(paste("Catch Weight in", year, "using", gear)) +
+        theme_minimal() +
+        theme(plot.background = element_rect(fill = "white", colour = "white"),
+              panel.background = element_rect(fill = "white", colour = "white"),
+              legend.position = "right",  # Position the legend at the bottom
+              legend.background = element_rect(fill = "white", colour = "black"),
+              legend.key = element_blank(),
+              legend.text = element_text(size = legend_text_size),
+              legend.title = element_text(size = legend_text_size),
+              plot.title = element_text(size = title_size, face = "bold"),
+              axis.title.x = element_text(size = axis_title_size, face = "bold"),
+              axis.title.y = element_text(size = axis_title_size, face = "bold")) +
+        scale_x_continuous(limits = c(30, 100)) +
+        scale_y_continuous(limits = c(-50, 5)) +
+        labs(title = paste("Catch Weight in", year, "using", gear), x = "Longitude", y = "Latitude")
+      
+      # Print the plot
+      print(p)
+    }
+  }
+}
+
+```
+
+
+# Catch Composition
+In this section, we analyse the shark catch data, focusing on how the catch varies both annually and across different geographic areas.
+
+## Total catch by year
+
+Here we examine the total shark catch over different years. By aggregating the total weight of catches annually, we aim to identify trends, such as increases or decreases in catch volumes over time. 
+
+```{r total-catch-year}
+# Calculate total catch by year
+total_catch_by_year <- cpue %>%
+  group_by(year) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE))
+
+# Bar chart of catch composition by year
+ggplot(total_catch_by_year, aes(x = factor(year), y = TotalCatch)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  theme_minimal() +
+  labs(x = "Year", y = "Total Catch (Kilos)", title = "Total Catch by Year")
+```
+
+## Catch composition by area
+
+Here, we explore the catch composition across different fishing areas. By summarizing the total catch weight in each area, we gain an understanding of the geographical distribution of fishing efforts and shark abundance.
+
+```{r catch-composition-area}
+# Calculate total catch by area
+catch_by_area <- cpue %>%
+  group_by(Area) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE)) %>%
+  arrange(desc(TotalCatch))
+
+# Bar chart of catch composition by area
+ggplot(catch_by_area, aes(x = Area, y = TotalCatch, fill = Area)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Catch Composition by Area", x = "Area", y = "Total Catch (Kilos)") +
+  theme_minimal()
+
+```
+
+# Species Composition
+
+This section is dedicated to analyzing the shark catch data from a species-centric viewpoint. It provides insights into the average catch weight of each species, the total catch composition broken down by species, and an exploration of species diversity across different fishing areas.
+
+## Average catch weight by species
+
+Here, we examine the average weight of catches for each shark species. This helps in identifying which species are predominantly heavier or lighter in the catches, potentially indicating their abundance and size in the fishing areas.
+
+```{r average-catch-weight}
+
+# Calculate average catch weight by species
+avg_catch_weight_by_species <- cpue %>%
+  group_by(N_Cientifico) %>%
+  summarize(AverageCatchWeight = mean(Kilos, na.rm = TRUE))
+
+# Create bar plot
+ggplot(avg_catch_weight_by_species, aes(x = reorder(N_Cientifico, AverageCatchWeight), y = AverageCatchWeight)) +
+  geom_bar(stat = "identity", fill = "cyan") +
+  coord_flip() +  # Flipping the coordinates for easier reading
+  theme_minimal() +
+  labs(x = "Species (Scientific Name)", y = "Average Catch Weight", title = "Average Catch Weight by Species")
+
+```
+
+## Total catch composition by species
+
+This analysis visualizes the total catch quantity for each shark species. It highlights which species are more frequently caught, thereby allowing us to assess the impact of fishing on different shark populations.
+
+```{r species-catch-composition}
+
+# Group weight for each species
+catch_by_species <- cpue %>%
+  group_by(N_Cientifico) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE)) %>%
+  arrange(desc(TotalCatch))
+
+# Bar chart of catch composition by species
+ggplot(catch_by_species, aes(x = reorder(N_Cientifico, TotalCatch), y = TotalCatch)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Catch Composition by Species", x = "Species", y = "Total Catch (Kilos)") +
+  theme_minimal()
+
+```
+
+## Species composition by area
+
+In this subsection, we investigate the presence and prevalence of shark species in various fishing areas. This spatial distribution analysis helps in understanding the habitat preferences of different shark species.
+
+```{r species-composition-area}
+
+# Count of species in each area
+species_count_by_area <- cpue %>%
+  group_by(Area, N_Cientifico) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+# Grouped bar chart
+ggplot(species_count_by_area, aes(x = Area, y = Count, fill = N_Cientifico)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Species Presence in Each Area", x = "Area", y = "Count of Occurrences") +
+  theme_minimal() +
+  scale_fill_viridis(discrete = TRUE)
+
+```
+
+# Temporal Analysis
+
+This section focus on the temporal dynamics of shark catches, providing insights into catch trends over different time scales. Understanding these trends is crucial for assessing the health and sustainability of shark populations over time.
+
+## Overall catch trends on a yearly basis
+
+This analysis focuses on how the total shark catch has varied year by year. The line graph highlights any significant increases or decreases in catch over the years, which can be indicative of changes in shark populations, fishing effort, or regulations.
+
+```{r yearly-catch-trend}
+
+# Yearly catch trend
+yearly_trend <- cpue %>%
+  group_by(year) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE))
+
+# Line graph for yearly trends
+ggplot(yearly_trend, aes(x = year, y = TotalCatch)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Yearly Catch Trend", x = "Year", y = "Total Catch (Kilos)") +
+  theme_minimal()
+
+```
+
+## Overall catch trends on a montly basis
+
+Here, we extend the temporal analysis to a finer scale by examining monthly trends in shark catches. This can reveal seasonal patterns in fishing activities or shark abundance, offering a more detailed understanding of the dynamics within each year.
+
+```{r monthly-catch-trend}
+# Montly catch trend
+monthly_trend <- cpue %>%
+  group_by(year, month) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE))
+
+# Line graph for monthly trends
+ggplot(monthly_trend, aes(x = month, y = TotalCatch, group = year, color = factor(year))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Monthly Catch Trend", x = "Month", y = "Total Catch (Kilos)", color = "Year") +
+  theme_minimal()
+
+```
+
+## Species temporal trend analysis
+
+In this part, we look at the yearly catch trends by species. This species-specific temporal analysis helps in identifying which shark species have seen significant changes in their catch over time, potentially signaling shifts in species-specific abundance or susceptibility to fishing pressures.
+
+```{r species-temporal-trend}
+
+# Aggregate by year and species
+species_yearly_trend <- cpue %>%
+  group_by(year, N_Cientifico) %>%
+  summarize(TotalCatch = sum(Kilos, na.rm = TRUE))
+
+# Line graph for species-specific yearly trends
+ggplot(species_yearly_trend, aes(x = year, y = TotalCatch, color = N_Cientifico)) +
+  geom_line() +
+  labs(title = "Yearly Catch Trend for Each Species", x = "Year", y = "Total Catch (Kilos)", color = "Species") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+
+# Species Distribution By Length
+
+This section provides an in-depth look at the distribution of shark sizes within the dataset. Analyzing the length of sharks is crucial for understanding their growth patterns, population structure, and the impact of fishing on different size classes.
+
+## Overall sizes distribution
+
+This histogram offers a broad overview of the sizes of sharks across all species in the dataset. It reveals the most common size ranges and any notable size-related trends or anomalies.
+
+```{r sizes-distribution}
+
+# Bar plot on sizes distributions
+ggplot(subset(biol, !is.na(Length)), aes(x = Length)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  #facet_wrap(~Scientific_name) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Distribution of Fish Sizes", x = "Length", y = "Count")
+
+```
+
+## Average length by species
+
+The bar chart here displays the average length of each shark species, allowing for a comparative analysis of size across different species. This can be particularly informative for understanding species-specific growth patterns and identifying outliers.
+
+```{r Average-length-species}
+
+# Calculate average length for each species
+avg_length_by_species <- biol %>%
+  group_by(Scientific_name) %>%
+  summarize(AverageLength = mean(Length, na.rm = TRUE))
+
+# Plot the average lenghts 
+ggplot(avg_length_by_species, aes(x = reorder(Scientific_name, AverageLength), y = AverageLength)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  coord_flip() +  # For better readability of species names
+  theme_minimal() +
+  labs(title = "Average Length by Species", x = "Species", y = "Average Length (cm)")
+
+```
+
+## Distribution of fish sizes by species
+
+This detailed histogram, with each facet representing a different species, provides a species-specific view of size distribution. It helps in identifying how size distribution varies across species, which is important for species-specific management and conservation strategies.
+
+```{r Fish-Sizes-Species}
+load("../data/lh.RData")
+lh=transform(lh,Scientific_name=paste(Genus,Species,sep=" "))
+lh=subset(lh,Scientific_name%in%unique(biol$Scientific_name))
+
+# Bar plot on the fish sizes distributions for each species 
+ggplot(subset(biol, !is.na(Length)), aes(x = Length)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  geom_vline(aes(xintercept=exp(Lm)), data=lh, col="green")+
+  geom_vline(aes(xintercept=exp(Loo)),data=lh, col="black")+
+  facet_wrap(~Scientific_name, scales = "free")+
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Distribution of Fish Sizes by Species, with L50 and Loo", x = "Length", y = "Count")
+```
+
+## Size distribution by sex
+
+The histogram here breaks down the size distribution based on sex, offering insights into potential sexual dimorphism in size. This can be crucial for understanding reproductive strategies and population dynamics.
+
+```{r size-distribution-sex}
+# Histogram for size distribution by sex
+ggplot(subset(biol, !is.na(sex) & !is.na(Length)), aes(x = Length, fill = sex)) +
+  geom_histogram(binwidth = 5, alpha=0.5) +
+  labs(title = "Size Distribution by Sex", x = "Length", y = "Count", fill = "Sex") +
+  theme_minimal()
+
+```
+
+
+## Size distribution by maturity stage
+
+Finally, the box plot in this section looks at the size distribution across different maturity stages. This visualization helps in understanding the growth trajectory of sharks and how their size correlates with their maturity stage, which is essential for effective population management. The plot is further faceted by sex to provide a more nuanced view of these dynamics.
+
+```{r size-distribution-maturity-stage}
+
+# Box plot for size distribution by maturity stage
+ggplot(subset(biol, !is.na(MaturityDescription) & !is.na(Length)), aes(x = MaturityDescription, y = Length, fill = MaturityDescription)) +
+  geom_boxplot() +
+  labs(title = "Size Distribution by Maturity Stage", x = "Maturity Stage", y = "Length", fill = "Maturity Stage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotates x-axis labels
+  theme(legend.position = "none") +
+  facet_wrap(~sex)
+
+```
+
+
+# Gender Distribution
+
+This section focus on the gender distribution within the shark dataset, providing insights into the male-to-female ratios among different shark species. Understanding gender distribution is crucial for assessing reproductive capacities and potential vulnerabilities of shark populations.
+
+## Overall gender distribution
+
+The bar plot in this subsection gives an overview of the gender distribution across all shark species. This helps in understanding the overall balance between male and female sharks in the dataset, which is vital for population studies and conservation efforts.
+
+```{r gender-distribution}
+
+# Aggregating data by species and gender
+gender_distribution <- biol %>%
+  filter(!is.na(sex)) %>%
+  group_by(Scientific_name, sex) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+# Creating a faceted bar plot
+ggplot(gender_distribution, aes(x = sex, y = Count, fill = sex)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white", colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "white")) +
+  labs(title = "Gender Distribution", x = "Gender", y = "Count") +
+  scale_fill_brewer(palette = "Spectral", name = "Gender")
+
+```
+
+# Gender ratio by species
+
+This plot takes a species-specific approach to analyzing gender distribution. By breaking down the male and female counts for each species, it highlights any disparities in gender ratios among different shark species. Such information is essential for species-specific management practices, especially for species that might have skewed gender ratios due to fishing pressures or other environmental factors.
+
+```{r species-gender-ratio}
+
+# Gender ratio by species
+gender_ratio_by_species <- biol %>%
+  group_by(Scientific_name) %>%
+  summarize(FemaleCount = sum(sex == "F", na.rm = TRUE),
+            MaleCount = sum(sex == "M", na.rm = TRUE))
+
+gender_ratio_by_species <- gender_ratio_by_species %>%
+  pivot_longer(cols = c("FemaleCount", "MaleCount"), names_to = "Gender", values_to = "Count")
+
+# Bar plot on gender ratio by species
+ggplot(gender_ratio_by_species, aes(x = Scientific_name, y = Count, fill = Gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Gender Ratio by Species", x = "Species", y = "Count") +
+  scale_fill_manual(values = c("FemaleCount" = "pink", "MaleCount" = "blue"))
+
+```
+
+# Maturity
+
+This section focuses on the maturity stages of sharks, a critical aspect for understanding their reproductive status and health. The analysis is conducted both at the species level and by sex, providing a comprehensive view of the maturity distribution.
+
+## Proportion of each maturity stage within each species
+
+In this subsection, a stacked bar plot is used to depict the distribution of various maturity stages across different shark species. This visualization allows for a quick assessment of the predominant maturity stages in each species, which is crucial for understanding their reproductive cycles and potential for recruitment. 
+
+```{r proportion-maturity-stage}
+
+# Aggregate species by maturity stage and sex
+maturity_count_by_species <- biol %>%
+  filter(!is.na(MaturityDescription), !is.na(sex)) %>%
+  group_by(Scientific_name, MaturityDescription, sex) %>%
+  summarize(Count = n(), .groups = 'drop')
+
+# Bar plot showing the proportion of each maturity stage within each species.
+ggplot(maturity_count_by_species, aes(x = Scientific_name, y = Count, fill = MaturityDescription)) +
+  geom_bar(stat = "identity", position = "stack") +
+  theme_minimal() +
+  labs(title = "Maturity Stage Counts by Species", x = "Species", y = "Count") +
+  scale_fill_brewer(palette = "Paired") +
+  coord_flip()  # Optional for better readability of species names
+
+
+```
+
+## Proportion of each maturity stage within each species, separated by sex
+
+This plot separates the data by sex, providing a gender-specific view of maturity stages for each species. This approach is particularly useful for identifying any sex-based differences in maturity stages. The facet wrap creates individual panels for each sex, making it easier to compare and contrast these patterns across species. 
+
+```{r proportion-maturity-sex}
+
+# Bar plot showing the proportion of each maturity stage within each species, separated by sex.
+ggplot(maturity_count_by_species, aes(x = Scientific_name, y = Count, fill = MaturityDescription)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ sex, scales = "free_y") +  # Separate panels for each sex
+  theme_minimal() +
+  labs(title = "Maturity Stage Counts by Species and Sex", x = "Species", y = "Count") +
+  scale_fill_brewer(palette = "Paired") +
+  coord_flip()  # Optional for better readability of species names
+
+```

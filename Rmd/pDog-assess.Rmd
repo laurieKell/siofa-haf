@@ -1,0 +1,504 @@
+---
+title: "**SIOFA Sharks**"
+subtitle: "Centroscymnus coelolepis"
+author: "L Kell"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+#bibliography: /home/laurie/pCloudDrive/refs.bib
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/pdog/",
+               fig.path  ="../figs/pdog/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+```{r, setup}
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales, better for visibility
+
+library(FLCore)
+library(ggplotFL)
+```
+
+
+```{r, theme}
+theme_my<-function(size=12) {
+  theme_minimal() +
+    theme(text = element_text(size=size),
+          plot.title = element_text(face = "bold", size = size+2),
+          axis.title = element_text(size = size-1),
+          legend.position = "bottom",
+          legend.title = element_blank(),
+          panel.grid.major = element_line(color = "gray80"),
+          panel.grid.minor = element_blank())}
+
+theme_set(theme_my())
+```
+
+```{r, setwd}
+setwd("/home/laurie/Desktop/active/sofia-haf/Rmd")
+```
+
+```{r}
+# Function to convert species names into abbreviated factor
+sppAbbrv<-function(spp) {
+  # Split the genus and species names
+  names=strsplit(spp, " ")
+  
+  abbrv=sapply(names, function(name) {
+    paste0(substr(name[1], 1, 1), ". ", name[2])})}
+
+catchSmry<-function(data) {
+  # Filter out NAs
+  filtered=filter(data, !is.na(lat), !is.na(lon), !is.na(year))
+  # Group data
+  rtn=group_by(filtered, speciesScientificName,gear,year,lat,lon)
+  rtn$Species=gsub(" ","\n",rtn$speciesScientificName)
+  
+  rtn}
+
+#summary boxplot function
+fnBP<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.95))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+lfm<-function(lc,linf) 0.75*lc+0.25*linf
+
+lmax<-function(x){
+  rtn=reshape2::melt(aaply(x,2:6, function(x) rev(names(x[x>0&!is.na(x)]))[1]))
+  names(rtn)[dim(rtn)[2]]="data"
+  rtn$data=an(ac(rtn$data))
+  as.FLQuant(rtn)}
+
+boot<-function(x,nits){
+  
+  rtn=adply(propagate(x,nits),c(2:6), function(x){  
+    reshape2::melt(table(sample(names(x), size=sum(x), replace=TRUE, prob=x)),
+                 value.name="data")})    
+  rtn=as.FLQuant(rtn)
+  names(dimnames(rtn))[1]=names(x)[1]
+  rtn[is.na(rtn)]=0
+  rtn}
+```
+
+# Data
+
+
+## SIOFA
+
+```{r, data}
+# Load data from Excel file into data frames
+cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+
+# Adjusting time format
+adjust_time_format<-function(time)
+  format(as.POSIXct(time*86400, origin="1970-01-01", tz="UTC"), "%H:%M:%S")
+
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$time       =adjust_time_format(cpue$Time)
+cpue$year       =year(cpue$Date)
+names(cpue)[c(3,6)]=tolower(names(cpue)[c(3,6)])
+names(cpue)[c(7:8)]=c("lat","lon")
+
+cpue=subset(cpue,speciesScientificName=="Centroscymnus coelolepis")
+biol=subset(biol,speciesScientificName=="Centroscymnus coelolepis")
+biol=transform(biol, gender=factor(Sex,labels=c("Female","Male"),levels=c("F","M")))
+
+siofa=list("biol"=biol,"cpue"=cpue,"cSmry"=catchSmry(cpue))
+```
+
+## IEO
+
+```{r}
+load("../data/inputs/Sharks_biological.Rdata")
+biol=as.data.frame(biol)
+names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
+
+load("../data/inputs/Sharks_logbooks.Rdata")
+cpue=as.data.frame(cpue)
+
+biol=merge(biol,cpue[,c("cod_set","month","year","Area")],by=c("cod_set"))
+names(biol)=tolower(names(biol))
+
+mat=setNames(seq(4),c("A","B","C","D"))
+biol$mat[biol$mat%in%names(mat)]=mat[biol$mat[biol$mat%in%names(mat)]]
+biol$mat=substr(biol$mat,nchar(biol$mat),1)
+
+biol=transform(biol,spp=factor(sppAbbrv(species)))
+biol=transform(biol,mature=ifelse(as.numeric(mat)>=3,1,0))
+
+names(cpue)[]="species"
+cpue=subset(cpue,species=="Centroscymnus coelolepis")
+biol=subset(biol,species=="Centroscymnus coelolepis")
+biol=transform(biol, gender=factor(sex,labels=c("Female","Male"),levels=c("F","M")))
+ieo=list("biol"=biol,"cpue"=cpue)
+```
+
+```{r, save-data}
+save(ieo,siofa,file="../data/pDog.RData")
+```
+
+### Length Weight Relationship
+
+```{r, lw}
+dat=subset(ieo$biol,!is.na(len)&!is.na(mass))
+female=lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Female"))
+male  =lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Male"))
+
+eqFemale=paste("W", format(coef(female)[1], digits = 3), 
+               "L^",format(coef(female)[2], digits = 3))
+eqMale  =paste("W",  format(coef(male)[1],   digits = 3), 
+               "L^", format(coef(male)[2],   digits = 3))
+
+p=ggplot(subset(dat, mass < 50), aes(x = len, y = mass)) +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE, formula=y ~ x) +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_grid(. ~ gender) +
+  xlab("Log Length (cm)") + ylab("Log Mass (Kg)")+
+  geom_text(aes(x=50, y=50, label=eqFemale), 
+              data=subset(dat, gender=="Female"), hjust=0, vjust=0,
+              check_overlap=TRUE, color="blue") +
+  geom_text(aes(x=50, y=50, label=eqMale), 
+              data=subset(dat, gender=="Male"), hjust=0, vjust=0, 
+              check_overlap=TRUE, color="red")
+```
+
+
+
+## Maturity 
+
+### Females
+1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 7: post-natal, spent; 8: Re-starting development
+
+### Males
+1: immature; 2: developing; 3: mature; 4: active
+
+
+```{r, mat}
+pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+mat=rbind.fill(cbind(Type="Morph",pDogMorph),
+               cbind(Type="Gonad",pDogGonad))
+mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))
+mat$Type=factor(mat$Type)
+```
+
+```{r, mat-ieo}
+ggplot(mat)+
+  geom_line(aes(len,fitted,col=sex,linetype=Type))+
+  xlab("Length (cm)")+ylab("Proportion Mature")
+```
+
+#### Fit logistic regression model
+```{r, mat-fit}
+model=glm(mature~len+sex+len:sex+len:Type, data=mat, family=binomial)
+mat$hat=predict(model,type="response")
+
+ggplot(mat, aes(x=len, y=hat, color=sex, linetype=Type)) + 
+  geom_line() + 
+  labs(x = "Length", y = "Predicted Maturity Probability") + 
+  scale_y_continuous(limits = c(0, 1)) + 
+  theme_minimal()
+```
+
+```{r}
+ddply(mat,.(Type,sex), with,
+      data.frame("l50"=(len[(hat-0.5)^2==min((hat-0.5)^2)][1])))
+```
+
+```{r}
+l50<-function(model, sex, Type) {
+  # Extract coefficients from the model
+  coefs     =coef(model)
+  intercept =coefs['(Intercept)']
+  coefLen   =coefs['len']
+
+    # Adjust coefficients based on sex
+  sexEffect =ifelse(sex == "Male", coefs['sexMale'], 0)
+  lenSex    =ifelse(sex == "Male", coefs['len:sexMale'], 0)
+  
+  # Adjust coefficients based on Type
+  typeEffect=ifelse(Type == "Morph", coefs['len:TypeMorph'], 0)
+  
+  # Calculate the adjusted coefficient for len
+  coefLen   = coefLen + lenSex + typeEffect
+  
+  # Calculate the length at maturity = 0.5
+  l50       = -(intercept + sexEffect) / coefLen
+  
+  return(l50)}
+
+l50(model,"Female","Gonad")
+l50(model,"Male","  Gonad")
+l50(model,"Male","  Morph")
+l50(model,"Female","Morph")
+```
+
+## Catch
+
+```{r}
+ctc=ddply(siofa[[3]],.(year),with, data.frame(catch=sum(catchWeight,na.rm=T)))
+ggplot(ctc)+
+  geom_line(aes(year,catch))
+```
+
+
+
+## Length Frequency Distributions
+
+### IEO
+```{r, len}
+nobs =ddply(ieo$biol,.(gender,year), with, data.frame(n=length(len)))
+ibiol=left_join(ieo$biol, nobs)
+
+ggplot(ibiol, aes(len)) +
+  geom_histogram(bins=50, fill="skyblue", color="blue") +
+  coord_flip()+
+  facet_grid(gender~year, scales="free_y") +
+  #scale_y_continuous(breaks=function(x) {c(0,round(max(x,na.rm=TRUE)))})+  
+  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+            position=position_nudge(x=-0.5,y=-0.5), hjust=1, vjust=1)+
+  xlab("Length (cm)")+ylab("")+ 
+  theme(legend.position = "bottom", 
+                    axis.title.x = element_blank(), 
+                    axis.text.x  = element_blank(), 
+                    axis.ticks.x = element_blank())
+```
+
+**Figure `r iFig=iFig+1; iFig`** Gender Distribution by Length
+
+```{r, flen}
+iflen=ddply(transform(ieo$biol,len=as.integer(len)),.(gender,year,len), 
+           with,data.frame(data=length(cod_set)))
+iflen=as.FLQuant(mutate(iflen,unit=gender)[,-1])
+iflen[is.na(iflen)]=0
+```
+
+### SIOFA
+
+
+```{r}
+sbiol=merge(siofa$biol[,c(1,11:12,16)],siofa$cpue[,c("OPE_ID","year")])[,-1]
+names(sbiol)=c("len","mass","unit","year")
+sbiol=subset(sbiol,!is.na(len)&unit%in%c("Male","Female"))
+nobs =ddply(sbiol,.(unit,year), with, data.frame(n=length(len)))
+
+sflen=ddply(sbiol,.(len,year,unit), 
+           with,data.frame(data=length(mass)))
+sflen=as.FLQuant(sflen)
+sflen[is.na(sflen)]=0
+
+ggplot(sbiol, aes(len)) +
+  geom_histogram(bins=50, fill="skyblue", color="blue") +
+  coord_flip()+
+  facet_grid(unit~year, scales="free_y") +
+  #scale_y_continuous(breaks=function(x) {c(0,round(max(x,na.rm=TRUE)))})+
+  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+            position=position_nudge(x=-0.5,y=-0.5), hjust=1, vjust=1)+
+  xlab("Length (cm)")+ylab("")+ 
+  theme(legend.position = "bottom", 
+                    axis.title.x = element_blank(), 
+                    axis.text.x  = element_blank(), 
+                    axis.ticks.x = element_blank())+
+  geom_vline(aes(xintercept=data),data=as.data.frame(lc50( sflen)),col="red")+
+  geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Gender Distribution by Length
+
+The relationship between $L_{max}$ and $L_{\infty}$ is a fundamental concept in fishery science, particularly within the context of growth models such as the von Bertalanffy growth function (VBGF). Here's a brief overview:
+
+- $L_{\infty}$ (Linfinity) is the asymptotic maximum length that an individual of a given species can reach, according to the VBGF. It represents the length towards which the fish grows as age approaches infinity, essentially the maximum theoretical size.
+
+- $L_{max}$ (Lmax) is the maximum observed length from empirical data for individuals of a species within a specific population or study. It's an actual measurement from collected or observed data.
+
+The relationship between the two can be summarized as follows:
+
+1. **Theoretical vs. Empirical**: $L_{\infty}$ is a parameter from a growth model, while $L_{max}$ is an empirical measurement. $L_{\infty}$ is often larger than $L_{max}$ because $L_{max}$ is limited by the sizes of individuals that have been observed or caught, and it's unlikely that the largest possible individual of a species (as predicted by the growth model) will have been sampled.
+
+2. **Use in Growth Models**: $L_{\infty}$ is used in the von Bertalanffy growth function to model the growth of individuals in a population over time. $L_{max}$ can be used to validate or calibrate growth models by providing a reference point or to estimate $L_{\infty}$ when it cannot be directly calculated from available data.
+
+3. **Indicator of Growth Potential**: Both $L_{max}$ and $L_{\infty}$ serve as indicators of the growth potential and life history strategy of fish species. Species with large $L_{\infty}$ values tend to be long-lived, slow-growing, and late-maturing, which has implications for their vulnerability to fishing pressure.
+
+4. **Management Implications**: Understanding the relationship between $L_{max}$ and $L_{\infty}$ is crucial for fisheries management. It helps in setting appropriate size limits for fishing to ensure that individuals have the opportunity to reproduce before being caught, which is important for the sustainability of fish stocks.
+
+In summary, while $L_{max}$ and $L_{\infty}$ are related, they are distinct measures. $L_{\infty}$ provides a theoretical maximum size within the context of a growth model, while $L_{max}$ offers a practical, observed maximum size within a given dataset or study. The two can be used together to enhance our understanding of fish growth, population dynamics, and to inform management decisions.
+
+lmax5(x)
+
+l95(x)
+
+l25(x)
+
+lc50(x)
+
+lmode(x)
+
+lbar(x)
+
+lmean(x)
+
+lmaxy(x, lenwt)
+
+pmega(x, linf, lopt = linf * 2/3)
+
+Bootstrapping an FLQuant object, which contains numbers by length and year for a fish stock, involves resampling the data to create "bootstrap samples." These samples can be used to estimate the variability of stock assessment metrics or indicators. Below, I'll provide a conceptual overview and a basic example of how to perform bootstrapping on an FLQuant object in R using the FLR (Fisheries Library in R) framework.
+
+### Conceptual Overview
+
+1. **Bootstrap Sampling**: Randomly resample the FLQuant data with replacement to create a new "bootstrap sample." This involves sampling individual length-at-age data points (or whatever the FLQuant represents) to construct a new dataset of the same size as the original.
+
+2. **Replication**: Repeat the bootstrap sampling process many times (e.g., 1000 or more iterations) to generate many bootstrap samples. 
+
+3. **Metric Calculation**: For each bootstrap sample, calculate the stock assessment metric or indicator of interest (e.g., spawning stock biomass, fishing mortality rates, or length-based indicators).
+
+4. **Variability Estimation**: Use the distribution of the calculated metrics across all bootstrap samples to estimate their variability (e.g., standard errors, confidence intervals).
+
+### Example Code
+
+This example is hypothetical, as the specific function calls and structure will depend on the details of your FLQuant object and what you're trying to achieve. You'll need to have the FLCore and possibly other FLR packages installed.
+
+
+**Note**: This is a simplified example. The actual bootstrapping process will depend on the structure of your data, the metrics you're interested in, and the specific methods used for resampling and analysis. The `calculateMetric` function is a placeholder for whatever analysis you are performing on each bootstrap sample.
+
+Remember, bootstrapping is computationally intensive, especially with large datasets and many bootstrap iterations. Ensure your calculations within the loop are as efficient as possible.
+
+
+To bootstrap a length frequency distribution from your vector, you can use the `sample()` function in R to randomly resample the length categories with replacement, simulating the process of drawing new samples from the original dataset. This approach allows you to estimate the variability of your statistics (e.g., mean length, total abundance) and can be repeated many times to create a distribution of these statistics.
+
+Here's a basic outline of how you might perform this bootstrap procedure for your length frequency data:
+
+1. **Prepare Your Data**: First, ensure your length frequency data is in a suitable format, such as a vector or data frame where lengths are associated with their frequencies.
+
+2. **Define the Bootstrap Function**: Write a function to resample your data and calculate the statistic(s) of interest (e.g., mean length).
+
+3. **Perform the Bootstrap**: Use a loop to repeatedly apply the bootstrap function, storing each replicate's results.
+
+Below is an example R code snippet that demonstrates this process for bootstrapping the mean length from your dataset. This example assumes your length frequency data is stored in a data frame called `length_freq` with columns `len` for length categories and `freq` for their frequencies.
+
+```{r}
+rtn=boot(iflen,100)
+lc =lc50(rtn)
+
+ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
+  stat_summary(fun.data=fnBP, geom="boxplot")+
+  geom_line(aes(x=factor(year), y=data, group=unit), colour="red", 
+            data=as.data.frame(iterMedians(lc)))+
+  facet_grid(unit~.)+
+  labs(x="Year", y="Lc50")
+
+```
+
+```{r}
+rtn=boot(iflen,250)
+lmn =lmean(rtn)
+
+ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
+  stat_summary(fun.data=fnBP, geom="boxplot")+
+  geom_line(aes(x=factor(year), y=data, group=unit), colour="blue", 
+            data=as.data.frame(iterMedians(lmn)))+
+  facet_grid(unit~.)+
+  labs(x="Year", y="Lc50")+
+  geom_hline(aes(yintercept=lfm(45,150)),col="red")
+```
+
+
+```{r}
+rtn=boot(sflen,100)
+lc =lc50(rtn)
+
+ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
+  stat_summary(fun.data=fnBP, geom="boxplot")+
+  geom_line(aes(x=factor(year), y=data, group=unit), colour="red", 
+            data=as.data.frame(iterMedians(lc)))+
+  facet_grid(unit~.)+
+  labs(x="Year", y="Lc50")
+
+```
+
+```{r}
+rtn=boot(sflen,250)
+lmn =lmean(rtn)
+
+ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
+  stat_summary(fun.data=fnBP, geom="boxplot")+
+  geom_line(aes(x=factor(year), y=data, group=unit), colour="blue", 
+            data=as.data.frame(iterMedians(lmn)))+
+  facet_grid(unit~.)+
+  labs(x="Year", y="Lc50")+
+  geom_hline(aes(yintercept=lfm(45,150)),col="red")
+```
+
+The empirical relationship between 
+$L_{\infty}$
+  (asymptotic length, the maximum length towards which the individuals in a population converge as they become infinitely old) and 
+
+$L_{max}$
+⁡
+  (the maximum observed length in a population) is an area of interest in fishery science, particularly for assessing fish growth and population dynamics.
+
+While both 
+$L_{\infty}$
+
+  and 
+$L_{max}$
+
+  provide insights into the growth potential of a species, they are distinct parameters. 
+$L_{\infty}$
+
+  is a theoretical parameter derived from growth models (e.g., the von Bertalanffy growth function), whereas 
+⁡
+$L_{max}$
+
+  is an empirical observation from field data.
+
+Several studies have attempted to establish empirical relationships between these two metrics to facilitate the estimation of one parameter from the other, especially in data-poor situations. However, it's important to note that any empirical relationship may be species-specific and influenced by environmental factors, fishing pressure, and the methodological approaches used in studies.
+
+A commonly cited rule of thumb is that 
+$L_{max}$   is often observed to be approximately 0.95 to 0.99 times 
+$L_{\infty}$
+ , acknowledging that most individuals in a population do not reach or exceed the asymptotic length due to natural mortality, predation, or fishing pressure. This approximation allows researchers to estimate 
+$L_{\infty}$
+
+  from 
+$L_{max}$
+  when growth model parameters are unknown or cannot be directly calculated due to lack of data.
+
+However, relying on a fixed ratio or empirical relationship without considering species-specific life history traits, ecological conditions, and the quality of the available data can lead to inaccuracies. Therefore, when such empirical relationships are used, they should be applied with caution and, if possible, validated against more comprehensive data sets or models specific to the species and region of interest.
+
