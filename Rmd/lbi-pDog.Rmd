@@ -197,6 +197,11 @@ load("../data/cCoelolepis.RData")
 nobs =ddply(ieo$biol,.(gender,year), with, data.frame(n=length(len)))
 ibiol=left_join(ieo$biol, nobs)
 
+iflen=ddply(transform(ieo$biol,len=as.integer(len)),.(gender,year,len), 
+           with,data.frame(data=length(cod_set)))
+iflen=as.FLQuant(mutate(iflen,unit=gender)[,-1])
+iflen[is.na(iflen)]=0
+
 ggplot(ibiol, aes(len)) +
   geom_histogram(bins=50, fill="skyblue", color="blue") +
   coord_flip()+
@@ -208,17 +213,14 @@ ggplot(ibiol, aes(len)) +
   theme(legend.position="bottom", 
                     axis.title.x=element_blank(), 
                     axis.text.x =element_blank(), 
-                    axis.ticks.x=element_blank())
+                    axis.ticks.x=element_blank())+
+  geom_vline(aes(xintercept=data),
+             data=transform(as.data.frame(lc50( iflen)),gender=unit),col="red")+
+  geom_vline(aes(xintercept=data),
+             data=transform(as.data.frame(lmean(iflen)),gender=unit),col="black")
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Length distributions by gender for IEO data.
-
-```{r, flen}
-iflen=ddply(transform(ieo$biol,len=as.integer(len)),.(gender,year,len), 
-           with,data.frame(data=length(cod_set)))
-iflen=as.FLQuant(mutate(iflen,unit=gender)[,-1])
-iflen[is.na(iflen)]=0
-```
 
 ### SIOFA
 
