@@ -1,6 +1,6 @@
 ---
-title: "Data Analysis of IEO Deep Sea Sharks"
-author: "Mariana"
+title: "Annex 2: Summary of IEO Data "
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 mathjax: TRUE

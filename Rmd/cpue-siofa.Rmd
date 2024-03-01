@@ -1,7 +1,7 @@
 ---
-title: "CPUE - SIOFA/IEO"
+title: "Annex 5:  Catch and Effort Analysis for Centroscymnus coelolepis"
 subtitle: "Centroscymnus coelolepis"
-author: "Katinka Bleeker"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE

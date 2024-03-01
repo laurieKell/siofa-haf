@@ -1,7 +1,7 @@
 ---
 title: "**SIOFA Sharks**"
 subtitle: "Life History"
-author: "L Kell"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE
@@ -11,6 +11,7 @@ tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
 #bibliography: /home/laurie/pCloudDrive/refs.bib
 ---
+
 
 # main shark’s species caught by SIOFA
 

@@ -1,6 +1,6 @@
 ---
-title: "Data Analysis of SIOFA Deep Sea Sharks"
-author: "Mariana"
+title: "Annex 1: Summary of SIOFA Data"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 mathjax: TRUE
