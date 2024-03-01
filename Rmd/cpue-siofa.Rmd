@@ -44,7 +44,7 @@ library(viridis)
 
 ```{r setwd, eval=FALSE}
 setwd("M:/My Documents/WMR-2024/Deep-water sharks SIOFA/Data/")
-setwd("../Desktop/active/sofia-haf/Rmd")
+setwd("../Desktop/active/siofa-haf/Rmd")
 ```
 
 ## SIOFA dataset
