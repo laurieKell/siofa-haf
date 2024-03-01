@@ -1,19 +1,19 @@
 ---
 title: "**SIOFA Sharks**"
-subtitle: "Centroscymnus coelolepis"
+subtitle: "Life History of Centroscymnus coelolepis"
 author: "L Kell"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE
-fig_width: 6 
-fig_height: 4 
+fig_height: 6
+fig_width:  6 
 tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
 #bibliography: /home/laurie/pCloudDrive/refs.bib
 ---
 
 ```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo=FALSE)
 
 library(knitr)
 opts_chunk$set(cache     =TRUE, 
@@ -26,13 +26,24 @@ opts_chunk$set(cache     =TRUE,
                cache     =TRUE,
                cache.path="cache/pdog/",
                fig.path  ="../figs/pdog/",
-               fig.width =12,
-               fig.height=8,
+               fig.width =6,
+               fig.height=6,
                dev       ="png")
 iFig=0
+iTab=0
 ```
 
-```{r, setup}
+```{r, pkgs-fb, eval=FALSE}
+library(remotes)
+
+remotes::install_github("ropensci/rfishbase",ref="d150f2e0f5")
+
+remotes::install_github("james-thorson/FishLife")
+
+remotes:::install_github("henning-winker/SPMpriors")
+```
+
+```{r, libs, cache=FALSE}
 library(openxlsx)  # For reading Excel files
 library(lubridate) # For handling date and time
 library(plyr)      # For data manipulation
@@ -43,28 +54,36 @@ library(ggpubr)    # For plotting
 library(mapdata)   # For map-based data
 library(viridis)   # For color scales, better for visibility
 
+library(xtable)
+
 library(FLCore)
 library(ggplotFL)
+
+library(rfishbase)
+library(SPMpriors)
+library(FishLife)
 ```
 
 
-```{r, theme}
-theme_my<-function(size=12) {
+```{r, theme, cache=FALSE}
+theme_my<-function(size=16) {
   theme_minimal() +
-    theme(text = element_text(size=size),
-          plot.title = element_text(face = "bold", size = size+2),
-          axis.title = element_text(size = size-1),
-          legend.position = "bottom",
-          legend.title = element_blank(),
-          panel.grid.major = element_line(color = "gray80"),
-          panel.grid.minor = element_blank())}
+    theme(text=element_text(size=size),
+          plot.title=element_text(face="bold", size=size+2),
+          axis.title=element_text(size=size-1),
+          legend.position="bottom",
+          legend.title=element_blank(),
+          panel.grid.major=element_line(color="gray80"),
+          panel.grid.minor=element_blank())}
 
-theme_set(theme_my())
+theme_set(theme_my())  
 ```
 
 ```{r, setwd, eval=FALSE}
-setwd("/home/laurie/Desktop/active/siofa-haf/Rmd")
+setwd("~/Desktop/active/siofa-haf/Rmd")
+setwd("C:/Users/lauri/OneDrive/Desktop/active/siofa-haf/Rmd")
 ```
+
 
 ```{r}
 # Function to convert species names into abbreviated factor
@@ -107,18 +126,30 @@ boot<-function(x,nits){
   names(dimnames(rtn))[1]=names(x)[1]
   rtn[is.na(rtn)]=0
   rtn}
+
+source("../source/fl_mcupd_fn.R")
 ```
 
-# Data
+# Introduction
+
+In this analysis, we update the biological knowledge on *Centroscymnus coelolepis*, using
+data from catch data and biological sampling obtained from SIOFA and IEO 
+
+Based on these data we update the life history parameters such as the length-weight 
+relationship ($W=aL^b$), length at maturity, and maximum size ($L_{max}$). The analysis 
+also evaluates the current status using Length Based Indicators (LBIs).
+
+## Data 
+
+The datasets include length, mass and maturity-at-age; SIOFA data are in `SIOFA_DWS-2023-01-Data.xlsx`, 
+and IEO data in `Sharks_biological.Rdata`, `Sharks_logbooks.Rdata`, and `maturity_data.xlsx`.
 
 
-## SIOFA
-
-```{r, data}
+```{r, data-siofa}
 # Load data from Excel file into data frames
-cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+cpue=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+biol=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
                  startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
 
 # Adjusting time format
@@ -139,9 +170,7 @@ biol=transform(biol, gender=factor(Sex,labels=c("Female","Male"),levels=c("F","M
 siofa=list("biol"=biol,"cpue"=cpue,"cSmry"=catchSmry(cpue))
 ```
 
-## IEO
-
-```{r}
+```{r, data-ieo}
 load("../data/inputs/Sharks_biological.Rdata")
 biol=as.data.frame(biol)
 names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
@@ -166,80 +195,163 @@ biol=transform(biol, gender=factor(sex,labels=c("Female","Male"),levels=c("F","M
 ieo=list("biol"=biol,"cpue"=cpue)
 ```
 
-```{r, save-data}
+```{r, data-save}
 save(ieo,siofa,file="../data/pDog.RData")
 ```
-
-### Length Weight Relationship
-
-```{r, lw}
-dat=subset(ieo$biol,!is.na(len)&!is.na(mass))
-female=lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Female"))
-male  =lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Male"))
-
-eqFemale=paste("W", format(coef(female)[1], digits = 3), 
-               "L^",format(coef(female)[2], digits = 3))
-eqMale  =paste("W",  format(coef(male)[1],   digits = 3), 
-               "L^", format(coef(male)[2],   digits = 3))
-
-p=ggplot(subset(dat, mass < 50), aes(x = len, y = mass)) +
-  geom_point() +
-  geom_smooth(method="lm", se=FALSE, formula=y ~ x) +
-  scale_x_log10() +
-  scale_y_log10() +
-  facet_grid(. ~ gender) +
-  xlab("Log Length (cm)") + ylab("Log Mass (Kg)")+
-  geom_text(aes(x=50, y=50, label=eqFemale), 
-              data=subset(dat, gender=="Female"), hjust=0, vjust=0,
-              check_overlap=TRUE, color="blue") +
-  geom_text(aes(x=50, y=50, label=eqMale), 
-              data=subset(dat, gender=="Male"), hjust=0, vjust=0, 
-              check_overlap=TRUE, color="red")
-```
-
-
-
-## Maturity 
-
-### Females
-1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 7: post-natal, spent; 8: Re-starting development
-
-### Males
-1: immature; 2: developing; 3: mature; 4: active
 
 
 ```{r, mat}
 pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
 pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
 mat=rbind.fill(cbind(Type="Morph",pDogMorph),
                cbind(Type="Gonad",pDogGonad))
 mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))
 mat$Type=factor(mat$Type)
 ```
 
-```{r, mat-ieo}
-ggplot(mat)+
-  geom_line(aes(len,fitted,col=sex,linetype=Type))+
-  xlab("Length (cm)")+ylab("Proportion Mature")
+## Life history parameters
+
+By default the life history parameters are downloaded from 'FishBase'. However, these
+are sparse as they do not include information by gender.
+
+**Table `r iTab=iTab+1; iTab`** "Life History parameters from `FishBase` for Centroscymnus coelolepis".
+
+```{r, lhist}
+#info    =species("Centroscymnus coelolepis")
+
+lhistory=data.frame( 
+  Parameter  =c("Maturity (Lm)", "Max Length", "Common Length", "Max Weight"),
+  Description=c("101.8 cm (range 95 - 110 cm)", 
+                "121 cm TL male/unsexed", 
+                "92.0 cm TL male/unsexed", 
+                "10.1 kg"),
+  Reference  =c("Ref. 122636", "Ref. 122636", "Ref. 247", "Ref. 122636"))  
+
+kable(lhistory)
 ```
 
+
+```{r spp, eval=FALSE}
+# Load FAO taxa data
+load("../data/inputs/fao_taxa.RData")
+
+# Read ASFIS species information
+asfis = read.csv("../data/inputs/ASFIS_sp_2021.txt")
+names(asfis)[4] = "scientificName"
+
+# Transform fishbase data for compatibility
+spp = transform(rfishbase::fishbase, scientificName = paste(Genus, Species))
+
+# Define species of interest for SIOFA
+sppSiofa       =c("Centroscymnus coelolepis","Pailona commun","Portugese dogfish","CYO")
+sppSiofa       =as.data.frame(t(array(sppSiofa, c(4, length(sppSiofa)/4))))
+sppSiofa       =cbind(ldply(strsplit(sppSiofa[,1], " ")), sppSiofa)
+names(sppSiofa)=c("Genus", "Species", "scientificName", "french", "name", "FAO")
+
+# Merge species data with fishbase and ASFIS data
+sppSiofa = merge(sppSiofa, spp, by=c("Genus", "Species", "scientificName"), all.x=T)
+sppSiofa = merge(sppSiofa, asfis[,-(12:13)], by="scientificName", all.x=T)
+
+# Extract life history traits using custom functions
+traits = mdply(sppSiofa[,c("Genus", "Species")], function(Genus, Species) {
+  rtn = try(fl_mcupd(Genus=Genus, Species=Species)$traits)
+  if ("try-error" %in% class(rtn)) return(NULL)
+  rtn})
+
+sink(file=NULL)
+priors=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
+  
+  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2)))
+  
+  if ("try-error"%in%is(rtn)) return(NULL)
+  data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
+sink()
+
+# Merge priors and traits data
+lh=merge(priors, traits, by=c("Genus", "Species", "trait"), all=T)
+
+names(lh)=c("Genus","Species","trait","Value","Variance","Hat","CV","mu.upd","CV.upd","lcl.upd","ucl.upd","upper.quant")
+
+save(lh,file="../data/cCoelolepis.RData")
+```
+
+
+**Table `r iTab=iTab+1; iTab`** Life history parameters and priors from `FishLife`.
+
+```{r lh-tab}
+load("../data/cCoelolepis.RData")
+
+kable(lh[,c(3:7)])
+```
+
+
+
+### Length Weight Relationship
+
+```{r, lw, fig.height=4}
+dat   =subset(ieo$biol,!is.na(len)&!is.na(mass))
+female=lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Female"))
+male  =lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Male"))
+
+eqFemale=paste("W", format(coef(female)[1], digits=3), 
+               "L^",format(coef(female)[2], digits=3))
+eqMale  =paste("W",  format(coef(male)[1],  digits=3), 
+               "L^", format(coef(male)[2],  digits=3))
+ 
+ggplot(subset(dat, mass < 50), aes(x=len, y=mass)) +
+  geom_point() +
+  geom_smooth(aes(x=len, y=mass, col=gender), method="lm", se=FALSE, formula=y~x) +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_grid(. ~ gender) +
+  xlab("Log Length (cm)") + ylab("Log Mass (Kg)")+
+  geom_text(aes(x=50, y=50, label=eqFemale), 
+              data=subset(dat, gender=="Female"), hjust=0, vjust=0,
+              check_overlap=TRUE, color="red") +
+  geom_text(aes(x=50, y=50, label=eqMale), 
+              data=subset(dat, gender=="Male"), hjust=0, vjust=0, 
+              check_overlap=TRUE, color="blue")+
+  scale_color_manual(values=c("red","blue"))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length weight relationship ($W=aL^b$).
+
+
+### Maturity 
+
+Codes for maturity stages are **Females:** 1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 7: post-natal, spent; 8: Re-starting development; and **Males:** 1: immature; 2: developing; 3: mature; 4: active
+
+
+```{r, mat-ieo, fig.height=4}
+ggplot(mat)+
+  geom_line(aes(len,fitted,col=sex,linetype=Type))+
+  xlab("Length (cm)")+ylab("Proportion Mature") 
+```
+
+**Figure `r iFig=iFig+1; iFig`** Maturity Ogives, provided by IEO.
+
 #### Fit logistic regression model
-```{r, mat-fit}
+```{r, mat-fit, fig.height=4}
 model=glm(mature~len+sex+len:sex+len:Type, data=mat, family=binomial)
 mat$hat=predict(model,type="response")
 
 ggplot(mat, aes(x=len, y=hat, color=sex, linetype=Type)) + 
   geom_line() + 
-  labs(x = "Length", y = "Predicted Maturity Probability") + 
-  scale_y_continuous(limits = c(0, 1)) + 
-  theme_minimal()
+  labs(x="Length", y="Predicted Maturity Probability") + 
+  scale_y_continuous(limits=c(0, 1))
 ```
 
+
+**Figure `r iFig=iFig+1; iFig`** Maturity Ogives, fitted using data provided by IEO.
+
+**Table `r iTab=iTab+1; iTab`** Life history parameters and priors from `FishLife`.
+
 ```{r}
-ddply(mat,.(Type,sex), with,
-      data.frame("l50"=(len[(hat-0.5)^2==min((hat-0.5)^2)][1])))
+names(mat)[8]="Gender"
+kable(ddply(mat,.(Gender,Type), with,
+      data.frame("l50"=(len[(fitted-0.5)^2==min((fitted-0.5)^2)][1]))))
 ```
 
 ```{r}
@@ -257,33 +369,35 @@ l50<-function(model, sex, Type) {
   typeEffect=ifelse(Type == "Morph", coefs['len:TypeMorph'], 0)
   
   # Calculate the adjusted coefficient for len
-  coefLen   = coefLen + lenSex + typeEffect
+  coefLen  =coefLen + lenSex + typeEffect
   
-  # Calculate the length at maturity = 0.5
-  l50       = -(intercept + sexEffect) / coefLen
+  # Calculate the length at maturity=0.5
+  l50      =-(intercept + sexEffect) / coefLen
   
   return(l50)}
 
-l50(model,"Female","Gonad")
-l50(model,"Male","  Gonad")
-l50(model,"Male","  Morph")
-l50(model,"Female","Morph")
+l50=mdply(expand.grid(Type  =c("Gonad", "Morph"),
+                      Gender=c("Female","Male")), function(Gender,Type) 
+                        data.frame("L50"=l50(model,Gender,Type)))
+kable(l50[,c(2:1,3)],digits=0)
 ```
 
 ## Catch
 
-```{r}
+```{r, fig.height=4, fig.width=8}
 ctc=ddply(siofa[[3]],.(year),with, data.frame(catch=sum(catchWeight,na.rm=T)))
 ggplot(ctc)+
   geom_line(aes(year,catch))
 ```
 
 
+**Figure `r iFig=iFig+1; iFig`** Time series of aggregated catch biomass.
+
 
 ## Length Frequency Distributions
 
 ### IEO
-```{r, len}
+```{r, len-ieo, fig.width=8, fig.height=4}
 nobs =ddply(ieo$biol,.(gender,year), with, data.frame(n=length(len)))
 ibiol=left_join(ieo$biol, nobs)
 
@@ -295,13 +409,13 @@ ggplot(ibiol, aes(len)) +
   geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
             position=position_nudge(x=-0.5,y=-0.5), hjust=1, vjust=1)+
   xlab("Length (cm)")+ylab("")+ 
-  theme(legend.position = "bottom", 
-                    axis.title.x = element_blank(), 
-                    axis.text.x  = element_blank(), 
-                    axis.ticks.x = element_blank())
+  theme(legend.position="bottom", 
+                    axis.title.x=element_blank(), 
+                    axis.text.x =element_blank(), 
+                    axis.ticks.x=element_blank())
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Gender Distribution by Length
+**Figure `r iFig=iFig+1; iFig`** Length distributions by gender for IEO data.
 
 ```{r, flen}
 iflen=ddply(transform(ieo$biol,len=as.integer(len)),.(gender,year,len), 
@@ -313,7 +427,7 @@ iflen[is.na(iflen)]=0
 ### SIOFA
 
 
-```{r}
+```{r,len-siofa, fig.width=8, fig.height=4}
 sbiol=merge(siofa$biol[,c(1,11:12,16)],siofa$cpue[,c("OPE_ID","year")])[,-1]
 names(sbiol)=c("len","mass","unit","year")
 sbiol=subset(sbiol,!is.na(len)&unit%in%c("Male","Female"))
@@ -332,15 +446,68 @@ ggplot(sbiol, aes(len)) +
   geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
             position=position_nudge(x=-0.5,y=-0.5), hjust=1, vjust=1)+
   xlab("Length (cm)")+ylab("")+ 
-  theme(legend.position = "bottom", 
-                    axis.title.x = element_blank(), 
-                    axis.text.x  = element_blank(), 
-                    axis.ticks.x = element_blank())+
+  theme(legend.position="bottom", 
+                    axis.title.x=element_blank(), 
+                    axis.text.x =element_blank(), 
+                    axis.ticks.x=element_blank())+
   geom_vline(aes(xintercept=data),data=as.data.frame(lc50( sflen)),col="red")+
   geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Gender Distribution by Length
+**Figure `r iFig=iFig+1; iFig`** Length distributions by gender for SIOFA data.
+
+## Introduction
+
+Applying LBIs requires consideration of species-specific life history traits of sharks and the type of fisheries they are subjected to. Using multiple indicators in tandem is recommended for a comprehensive view of the stock status. Management strategies should be adaptive, considering the ecological roles of sharks, their vulnerability to overfishing, and the socio-economic context of the fisheries.
+
+
+#### Diagnostics focusing on checks for model fit, influential observations, and assumption violations:
+
+
+Length-based indicators (LBIs) are useful for assessing shark stocks, based on the size composition of catch or survey data to provide insights into the status of fish stocks. Especially when traditional assessment methods are not applicable due to data limitations.
+
+Here provides a summary of the shark dataset, which includes information 
+on shark captures such as species, length, weight, sex, maturity, and other relevant data. The aim is to understand the diversity of species, the types of data collected, and assess the quality and coverage of the dataset.
+
+
+
+# Best Length-Based Indicators for Shark Stocks
+
+## 1. Length Frequency Distribution
+
+- **Description:** Analysis of length frequency distribution can reveal shifts in population structure, indicating changes in recruitment, growth rates, or fishing pressure.
+
+- **Utility:** Helps understand the age structure and can indicate overfishing if larger, older individuals become rare.
+
+## 2. Mean Length
+
+- **Description:** The average length of individuals in the catch or population over time.
+- **Utility:** A declining mean length can indicate heavy fishing pressure or overexploitation.
+
+## 3. Length at First Capture (L50)
+
+- **Description:** The length at which 50% of individuals are susceptible to capture.
+- **Utility:** If L50 is much lower than the length at maturity (Lm), it suggests unsustainable fishing practices.
+
+## 4. Proportion of Mature Individuals
+
+- **Description:** The percentage of the catch that is mature, assessed through length.
+- **Utility:** A decrease over time can indicate overfishing.
+
+## 5. Large Fish Indicator (LFI)
+
+- **Description:** The proportion of fish above a certain length threshold.
+- **Utility:** Useful for detecting shifts towards smaller sizes, indicating overexploitation.
+
+## 6. Size at Maturity (Lm)
+
+- **Description:** The length at which a certain percentage of the population reaches sexual maturity.
+- **Utility:** Important for ensuring sharks reach maturity before being caught.
+
+## 7. Growth Rates and Maximum Size (L∞)
+
+- **Description:** Estimated from length-at-age data to understand population dynamics.
+- **Utility:** Inform on the health of the stock and the efficacy of current management strategies.
 
 The relationship between $L_{max}$ and $L_{\infty}$ is a fundamental concept in fishery science, particularly within the context of growth models such as the von Bertalanffy growth function (VBGF). Here's a brief overview:
 
@@ -376,7 +543,7 @@ lmean(x)
 
 lmaxy(x, lenwt)
 
-pmega(x, linf, lopt = linf * 2/3)
+pmega(x, linf, lopt=linf * 2/3)
 
 Bootstrapping an FLQuant object, which contains numbers by length and year for a fish stock, involves resampling the data to create "bootstrap samples." These samples can be used to estimate the variability of stock assessment metrics or indicators. Below, I'll provide a conceptual overview and a basic example of how to perform bootstrapping on an FLQuant object in R using the FLR (Fisheries Library in R) framework.
 
@@ -425,6 +592,10 @@ ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
 
 ```
 
+
+**Figure `r iFig=iFig+1; iFig`** .
+
+
 ```{r}
 rtn=boot(iflen,250)
 lmn =lmean(rtn)
@@ -437,6 +608,9 @@ ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
   labs(x="Year", y="Lc50")+
   geom_hline(aes(yintercept=lfm(45,150)),col="red")
 ```
+
+
+**Figure `r iFig=iFig+1; iFig`** .
 
 
 ```{r}
@@ -452,6 +626,10 @@ ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
 
 ```
 
+
+**Figure `r iFig=iFig+1; iFig`** .
+
+
 ```{r}
 rtn=boot(sflen,250)
 lmn =lmean(rtn)
@@ -464,6 +642,10 @@ ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
   labs(x="Year", y="Lc50")+
   geom_hline(aes(yintercept=lfm(45,150)),col="red")
 ```
+
+
+**Figure `r iFig=iFig+1; iFig`** .
+
 
 The empirical relationship between 
 $L_{\infty}$
@@ -503,239 +685,3 @@ $L_{max}$
 However, relying on a fixed ratio or empirical relationship without considering species-specific life history traits, ecological conditions, and the quality of the available data can lead to inaccuracies. Therefore, when such empirical relationships are used, they should be applied with caution and, if possible, validated against more comprehensive data sets or models specific to the species and region of interest.
 
 
-## Introduction
-
-Length-based indicators (LBIs) are useful for assessing shark stocks, based on the size composition of catch or survey data to provide insights into the status of fish stocks. Especially when traditional assessment methods are not applicable due to data limitations.
-
-Here provides a summary of the shark dataset, which includes information 
-on shark captures such as species, length, weight, sex, maturity, and other relevant data. The aim is to understand the diversity of species, the types of data collected, and assess the quality and coverage of the dataset.
-
-
-
-# Best Length-Based Indicators for Shark Stocks
-
-## 1. Length Frequency Distribution
-
-- **Description:** Analysis of length frequency distribution can reveal shifts in population structure, indicating changes in recruitment, growth rates, or fishing pressure.
-
-- **Utility:** Helps understand the age structure and can indicate overfishing if larger, older individuals become rare.
-
-## 2. Mean Length
-
-- **Description:** The average length of individuals in the catch or population over time.
-- **Utility:** A declining mean length can indicate heavy fishing pressure or overexploitation.
-
-## 3. Length at First Capture (L50)
-
-- **Description:** The length at which 50% of individuals are susceptible to capture.
-- **Utility:** If L50 is much lower than the length at maturity (Lm), it suggests unsustainable fishing practices.
-
-## 4. Proportion of Mature Individuals
-
-- **Description:** The percentage of the catch that is mature, assessed through length.
-- **Utility:** A decrease over time can indicate overfishing.
-
-## 5. Large Fish Indicator (LFI)
-
-- **Description:** The proportion of fish above a certain length threshold.
-- **Utility:** Useful for detecting shifts towards smaller sizes, indicating overexploitation.
-
-## 6. Size at Maturity (Lm)
-
-- **Description:** The length at which a certain percentage of the population reaches sexual maturity.
-- **Utility:** Important for ensuring sharks reach maturity before being caught.
-
-## 7. Growth Rates and Maximum Size (L∞)
-
-- **Description:** Estimated from length-at-age data to understand population dynamics.
-- **Utility:** Inform on the health of the stock and the efficacy of current management strategies.
-
-# Conclusion
-
-Applying LBIs requires consideration of species-specific life history traits of sharks and the type of fisheries they are subjected to. Using multiple indicators in tandem is recommended for a comprehensive view of the stock status. Management strategies should be adaptive, considering the ecological roles of sharks, their vulnerability to overfishing, and the socio-economic context of the fisheries.
-
-
-#### Diagnostics focusing on checks for model fit, influential observations, and assumption violations:
-
-
-```{r, mat2}
-pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
-                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
-mat=rbind.fill(cbind(Type="Morph",pDogMorph),
-               cbind(Type="Gonad",pDogGonad))
-mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))
-mat$Type=factor(mat$Type)
-```
-
-```{r, mat2-ieo}
-ggplot(mat)+
-  geom_line(aes(len,fitted,col=sex,linetype=Type))+
-  xlab("Length (cm)")+ylab("Proportion Mature")
-```
-
-#### Fit logistic regression model
-```{r, mat2-fit}
-model=glm(mature~len+sex+len:sex+len:Type, data=mat, family=binomial)
-mat$hat=predict(model,type="response")
-
-ggplot(mat, aes(x=len, y=hat, color=sex, linetype=Type)) + 
-  geom_line() + 
-  labs(x = "Length", y = "Predicted Maturity Probability") + 
-  scale_y_continuous(limits = c(0, 1)) + 
-  theme_minimal()
-```
-
-
-### 1. Summary of Model Fit
-- Use `summary(model)` to get an overview of the model fit, including coefficients, standard errors, z-values, and P-values for each predictor.
-
-```{r}
-summary(model)  
-```
-
-### 2. Residuals and Model Fit
-- **Residuals Plot**: Plot residuals to look for patterns. For logistic regression, deviance residuals can be informative.
-
-```{r}
-mat$rsdl=residuals(model, type = "deviance")
-
-ggplot(mat)+
-  geom_point(aes(len,rsdl))+
-  facet_grid(sex~Type)
-```
-- **Hosmer-Lemeshow Test**: Test for goodness of fit specifically designed for logistic regression.
-```{r}
-library(ResourceSelection)
-hoslem.test(model$y, fitted(model))
-```
-
-### 3. Influence Measures
-- **Cook's Distance**: Identify influential observations based on Cook's distance.
-
-### 3. Influence Measures
-- **Cook's Distance**: Identify influential observations based on Cook's distance.
-```{r, eval=TRUE, echo=FALSE}
-mat$cdist=cooks.distance(model)
-
-ggplot(mat) +
-  geom_linerange(aes(len,ymin=0,ymax=cdist))+
-  labs(title = "Influence Plot Using Cook's Distance",
-       x = "Length (cm)",
-       y = "Cook's Distance") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  facet_grid(sex~Type)
-```
-
-- **Leverage and Influence Plots**: Identify observations with high leverage or influence on the model estimation.
-```{r}
-library(car)
-influencePlot(model, id.method="identify", main="Influence Plot", sub="Circle size is proportional to Cook's Distance")
-```
-
-To create an influence plot using `ggplot2` that mimics the functionality of the `car::influencePlot`, you'll need to manually calculate the elements you want to visualize: leverage, standardized residuals, and Cook's distance. Here's how you can do it with a logistic regression model as an example. This approach involves extracting the necessary statistics from the model and then plotting them using `ggplot2`.
-
-First, ensure you have your logistic regression model fitted. For this example, let's assume your model is stored in a variable named `model`. You'll need the `broom` and `ggplot2` packages as well.
-
-```{r}
-library(broom)
-
-# Calculate leverage (hat values)
-model_leverage <- hatvalues(model)
-
-# Calculate standardized residuals
-model_std_resid <- rstandard(model)
-
-# Calculate Cook's distance
-model_cooks_d <- cooks.distance(model)
-
-# Create a dataframe for plotting
-influence_data <- data.frame(
-  Leverage = model_leverage,
-  StdResiduals = model_std_resid,
-  CooksDistance = model_cooks_d
-)
-
-# Generate the plot
-ggplot(cbind(mat,influence_data), aes(x = Leverage, y = StdResiduals, size = CooksDistance)) +
-  geom_point(alpha = 0.6) +
-  scale_size_continuous(range = c(1, 12), guide = 'none') + # Adjust size scale and hide legend
-  labs(title = "Influence Plot",
-       subtitle = "Circle size is proportional to Cook's Distance",
-       x = "Leverage",
-       y = "Standardized Residuals") +
-  theme_minimal()+
-  facet_grid(sex~Type)
-```
-
-This script does the following:
-- Calculates the leverage, standardized residuals, and Cook's distance for each observation in your logistic regression model.
-- Constructs a dataframe `influence_data` that contains these values.
-- Uses `ggplot2` to create a scatter plot where the x-axis is leverage, the y-axis is standardized residuals, and the size of each point represents Cook's distance.
-
-Adjust the `scale_size_continuous` function as needed to better fit your data. The `guide = 'none'` argument hides the size legend since it generally clutters the plot. This approach gives you a detailed and customizable influence plot using `ggplot2`.
-
-Creating an influence plot with `ggplot2` requires calculating influence measures like Cook's distance, leveraging the model you've fitted, and then plotting these measures. The influence plot visually identifies points that have a significant impact on the model's estimates. Here's how you can create an influence plot for your logistic regression model using `ggplot2` in R:
-
-1. **Calculate Cook's Distance**: Cook's distance is a measure used to estimate the influence of each data point. In logistic regression, it identifies points that, if removed, would change the model's parameters significantly.
-
-2. **Prepare the Data**: Combine the Cook's distance with your original dataset or create a new dataframe with the Cook's distance and leverage values for each observation.
-
-3. **Plot Using `ggplot2`**: Create the plot using `ggplot2`, highlighting observations with high influence.
-
-Here's an example code snippet that demonstrates this process:
-
-### 4. Multicollinearity
-- **Variance Inflation Factor (VIF)**: Check for multicollinearity among predictors.
-```{r}
-vif(model)
-```
-
-### 5. Model Assumptions and Fit
-- **Check Linearity**: The logit link assumes a linear relationship between log odds and predictors. Use plots or Generalized Additive Models (GAMs) to assess this.
-```{r}
-library(mgcv)
-gam_model = gam(mature ~ s(len) + sex + Type, family=binomial, data=mat)
-plot(gam_model)
-```
-
-```{r}
-# Load necessary libraries
-library(mgcv)
-library(ggplot2)
-
-# Assuming your GAM model is named gam_model
-gam_model <- gam(mature ~ s(len) + sex + Type, family=binomial(), data=mat)
-
-# Extracting the smooth term for 'len'
-smooth_len <- plot(gam_model, select = 1, se = TRUE)[[1]] # 'select=1' selects the first smooth term, usually it's s(len)
-
-# Convert to a data frame for ggplot
-df_smooth_len <- data.frame(
-  len   =smooth_len$x,
-  fitted=smooth_len$fit,
-  lower =smooth_len$fit - 2 * smooth_len$se,
-  upper =smooth_len$fit + 2 * smooth_len$se
-)
-
-# Plot using ggplot2
-ggplot(df_smooth_len, aes(x = len)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightblue", alpha = 0.5) +
-  geom_line(aes(y = fitted), color = "blue") +
-  labs(title = "Effect of Length on Maturity", x = "Length", y = "Estimated Effect") +
-  theme_minimal()
-
-```
-
-- **Check for Overdispersion**: This is less of a concern in binary logistic regression but can be relevant for count data.
-
-### 6. Predicted vs. Observed
-- **Predicted vs. Observed**: Compare the predicted probabilities to the observed outcomes to evaluate the model's performance.
-
-```{r,eval=FALSE}
-fitted_probs = predict(model, type="response")
-plot(pDogGonad$mature, fitted_probs, xlab="Observed", ylab="Predicted", main="Predicted vs Observed")
-abline(0,1)
-```
