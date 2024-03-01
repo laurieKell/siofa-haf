@@ -24,6 +24,8 @@ Management Strategy Evaluation (MSE), offer a way to test and compare the effect
 
 The combined application of these approaches represents a comprehensive framework for the sustainable management of Centroscymnus coelolepis. By addressing the unique challenges of managing data-limited deep-sea species, this strategy not only aims to ensure the long-term viability of Centroscymnus coelolepis populations but also contributes to the broader goal of sustainable deep-sea fisheries management. Such an approach underscores the importance of integrating scientific research, expert knowledge, and stakeholder engagement in developing adaptive and resilient management strategies. As fisheries management continues to evolve, embracing these innovative methods will be crucial for protecting vulnerable species like Centroscymnus coelolepis and their ecosystems.
 
+
+
 Deepwater Sharks Workshop (WS2023-DWS) Tenerife, Spain, 20-21 March 2023
 
 Under Agenda item 3.3. Development of a risk assessment framework (e.g., Productivity Susceptibility Analysis (PSA)) the paper “A hierarchical stock assessment risk framework for deepwater sharks” (WSDWS-2023-06) was presented. 
