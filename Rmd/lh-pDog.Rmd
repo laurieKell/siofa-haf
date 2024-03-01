@@ -1,6 +1,6 @@
 ---
 title: "**SIOFA Sharks**"
-subtitle: "Life History of Centroscymnus coelolepis"
+subtitle: "Length Based Indicators for Centroscymnus coelolepis"
 author: "L Kell"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
@@ -24,8 +24,8 @@ opts_chunk$set(cache     =TRUE,
                echo      =FALSE, 
                eval      =TRUE,
                cache     =TRUE,
-               cache.path="cache/pdog/",
-               fig.path  ="../figs/pdog/",
+               cache.path="cache/pdog-lh/",
+               fig.path  ="../figs/pdog-lh/",
                fig.width =6,
                fig.height=6,
                dev       ="png")

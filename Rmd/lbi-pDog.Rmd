@@ -5,12 +5,65 @@ author: "L Kell"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE
-fig_height: 6
-fig_width:  6 
 tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
 #bibliography: /home/laurie/pCloudDrive/refs.bib
 ---
+
+Using length-based indicators (LBIs) over length-based methods (LBMs) offers several advantages, particularly in the context of fisheries management where data limitations and the need for robust, understandable metrics are paramount. This justification draws on the detailed examination of fisheries challenges, the limitations of catch-only methods, and the utility of length data as outlined in the provided text.
+
+### Advantages of LBIs Over LBMs
+
+#### 1. **Data Availability and Accessibility**:
+Length data are more readily available for many fisheries compared to age-based data required for LBMs. LBIs can utilize data from even a single year to provide snapshots of exploitation levels, making them particularly valuable in data-limited situations.
+
+#### 2. **Simplicity and Stakeholder Comprehension**:
+LBIs, being based on direct observations and simple transformations of length frequencies, are easier to explain and understand for non-scientific stakeholders compared to the complex models and assumptions underpinning LBMs. This transparency is crucial for gaining stakeholder trust and compliance with management measures.
+
+#### 3. **Robustness to Data Limitations**:
+The reliance on fewer assumptions makes LBIs less susceptible to the biases and inaccuracies that can affect LBMs, especially in data-limited contexts. While LBMs can provide detailed insights, their complexity and the need for specific biological and fishery information can introduce significant uncertainties.
+
+#### 4. **Rapid Assessment Capabilities**:
+LBIs allow for quicker assessments of stock status and exploitation levels. They can provide immediate management guidance without the extensive data collection and analysis periods required for effective application of LBMs.
+
+#### 5. **Cost-Effectiveness**:
+The implementation of LBIs requires less detailed data and fewer resources than LBMs. This cost-effectiveness is particularly important for managing fisheries with limited financial and technical capacities.
+
+### Contextual Considerations
+
+While LBIs offer these advantages, their effectiveness is context-dependent. The choice between LBIs and LBMs should consider the specific management objectives, the nature of the fishery, and the available data. LBIs serve as powerful tools for initial assessments, trend monitoring, and providing priors for more complex models. However, they may not always capture the full dynamics of a fishery as effectively as LBMs.
+
+### Conclusion
+
+The preference for LBIs over LBMs in certain situations is justified by their accessibility, simplicity, robustness to data limitations, rapid assessment capabilities, and cost-effectiveness. These attributes make LBIs particularly suitable for data-limited fisheries and those requiring immediate management actions. However, a balanced approach that considers the strengths and limitations of both LBIs and LBMs, potentially integrating them where appropriate, can offer the most robust framework for fisheries management within the Ecosystem Approach to Fisheries.
+
+Catch-only methods have become increasingly popular for evaluating the status of fish stocks in situations where data are limited. These methods attempt to reconstruct historical abundance and assess stock status relative to reference points by making assumptions about productivity and final biomass relative to the unfished state. However, the reliability and accuracy of catch-only models have been a subject of debate, with concerns about their sensitivity to the choice of priors and their inability to validate using observations. This summary highlights the key reasons why catch-only methods are viewed with caution and suggests the integration of length data into biomass dynamic models as a more informative approach.
+
+### Critique of Catch-Only Methods
+
+1. **Sensitivity to Heuristics**: Catch-only models rely heavily on heuristics and priors for initial and final depletion based on expert opinion. These assumptions significantly influence the model outputs, making them sensitive to the choice of heuristics. The lack of data for calibration means that results can vary widely based on these initial assumptions.
+
+2. **Limited Validation Capabilities**: One of the fundamental limitations of catch-only models is the difficulty in validation. Since the only observations used are the catches themselves, traditional validation techniques such as cross-validation cannot be employed effectively. This lack of validation undermines the credibility of the models for making management decisions.
+
+3. **Inability to Monitor Management Interventions**: Catch-only models, by their nature, cannot be used as part of management control where data updates are used to monitor the effectiveness of interventions. Without additional data and knowledge, these models offer limited utility in implementing management for data-poor stocks.
+
+4. **Poor Performance in Classification**: Studies have shown that heuristics alone performed nearly as well as catch-only models in classifying stock status, indicating that the models do not significantly improve upon basic assumptions. This suggests that catch-only models might not provide a reliable basis for management decisions.
+
+### Integration of Length Data into Biomass Dynamic Models
+
+To address the limitations of catch-only methods, integrating length data into biomass dynamic models (e.g., JABBA) offers a promising alternative. Length data can provide snapshots of exploitation levels and serve as priors for catch-only methods, potentially improving the robustness of stock assessments. Here are some ways length data can enhance biomass dynamic models:
+
+1. **Improvement in Model Inputs**: Length data can serve as an unbiased estimate of abundance, offering additional information that can be used to refine model inputs and assumptions. This can lead to more accurate assessments of stock status relative to maximum sustainable yield (MSY) reference points.
+
+2. **Enhancement of Model Validation**: Including length data allows for a broader range of validation techniques, including comparisons with data-rich assessments from databases like RAM Legacy. This can help in evaluating the robustness of the assumptions used in models and the benefit of obtaining better priors.
+
+3. **Support for Management Decisions**: Integrating length data into models provides a more detailed picture of stock dynamics, supporting the development of scientific management frameworks that protect marine ecosystems and the well-being of stakeholders. It also allows for the evaluation of the value of obtaining additional information for reducing risk due to loss of yield through adopting a risk equivalence approach.
+
+4. **Transition from Data-Poor to Data-Moderate Assessments**: The use of length data enables a transition from catch-only to data-moderate stock assessments. This gradual integration of more detailed data can improve the accuracy of stock status estimates and support adaptive management strategies.
+
+In conclusion, while catch-only methods offer a tool for assessing fish stocks in data-limited situations, their limitations necessitate caution in their use for management decisions. Integrating length data into biomass dynamic models presents a viable alternative that can enhance the reliability and validation of stock assessments, supporting more informed and effective fisheries management.
+
+
 
 ```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
 knitr::opts_chunk$set(echo=FALSE)
@@ -24,10 +77,10 @@ opts_chunk$set(cache     =TRUE,
                echo      =FALSE, 
                eval      =TRUE,
                cache     =TRUE,
-               cache.path="cache/pdog/",
-               fig.path  ="../figs/pdog/",
-               fig.width =6,
-               fig.height=6,
+               cache.path="cache/pdog-lbi/",
+               fig.path  ="../figs/pdog-lbi/",
+               fig.width =8, 
+               fig.height=4,
                dev       ="png")
 iFig=0
 iTab=0
@@ -130,268 +183,11 @@ boot<-function(x,nits){
 source("../source/fl_mcupd_fn.R")
 ```
 
-# Introduction
-
-In this analysis, we update the biological knowledge on *Centroscymnus coelolepis*, using
-data from catch data and biological sampling obtained from SIOFA and IEO 
-
-Based on these data we update the life history parameters such as the length-weight 
-relationship ($W=aL^b$), length at maturity, and maximum size ($L_{max}$). The analysis 
-also evaluates the current status using Length Based Indicators (LBIs).
-
-## Data 
-
-The datasets include length, mass and maturity-at-age; SIOFA data are in `SIOFA_DWS-2023-01-Data.xlsx`, 
-and IEO data in `Sharks_biological.Rdata`, `Sharks_logbooks.Rdata`, and `maturity_data.xlsx`.
-
-
-```{r, data-siofa}
-# Load data from Excel file into data frames
-cpue=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
-                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
-biol=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
-                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
-
-# Adjusting time format
-adjust_time_format<-function(time)
-  format(as.POSIXct(time*86400, origin="1970-01-01", tz="UTC"), "%H:%M:%S")
-
-cpue$SettingTime=adjust_time_format(cpue$SettingTime)
-cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
-cpue$time       =adjust_time_format(cpue$Time)
-cpue$year       =year(cpue$Date)
-names(cpue)[c(3,6)]=tolower(names(cpue)[c(3,6)])
-names(cpue)[c(7:8)]=c("lat","lon")
-
-cpue=subset(cpue,speciesScientificName=="Centroscymnus coelolepis")
-biol=subset(biol,speciesScientificName=="Centroscymnus coelolepis")
-biol=transform(biol, gender=factor(Sex,labels=c("Female","Male"),levels=c("F","M")))
-
-siofa=list("biol"=biol,"cpue"=cpue,"cSmry"=catchSmry(cpue))
-```
-
-```{r, data-ieo}
-load("../data/inputs/Sharks_biological.Rdata")
-biol=as.data.frame(biol)
-names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
-
-load("../data/inputs/Sharks_logbooks.Rdata")
-cpue=as.data.frame(cpue)
-
-biol=merge(biol,cpue[,c("cod_set","month","year","Area")],by=c("cod_set"))
-names(biol)=tolower(names(biol))
-
-mat=setNames(seq(4),c("A","B","C","D"))
-biol$mat[biol$mat%in%names(mat)]=mat[biol$mat[biol$mat%in%names(mat)]]
-biol$mat=substr(biol$mat,nchar(biol$mat),1)
-
-biol=transform(biol,spp=factor(sppAbbrv(species)))
-biol=transform(biol,mature=ifelse(as.numeric(mat)>=3,1,0))
-
-names(cpue)[]="species"
-cpue=subset(cpue,species=="Centroscymnus coelolepis")
-biol=subset(biol,species=="Centroscymnus coelolepis")
-biol=transform(biol, gender=factor(sex,labels=c("Female","Male"),levels=c("F","M")))
-ieo=list("biol"=biol,"cpue"=cpue)
-```
 
 ```{r, data-save}
-save(ieo,siofa,file="../data/pDog.RData")
-```
-
-
-```{r, mat}
-pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
-                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
-pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
-                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
-mat=rbind.fill(cbind(Type="Morph",pDogMorph),
-               cbind(Type="Gonad",pDogGonad))
-mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))
-mat$Type=factor(mat$Type)
-```
-
-## Life history parameters
-
-By default the life history parameters are downloaded from 'FishBase'. However, these
-are sparse as they do not include information by gender.
-
-**Table `r iTab=iTab+1; iTab`** "Life History parameters from `FishBase` for Centroscymnus coelolepis".
-
-```{r, lhist}
-#info    =species("Centroscymnus coelolepis")
-
-lhistory=data.frame( 
-  Parameter  =c("Maturity (Lm)", "Max Length", "Common Length", "Max Weight"),
-  Description=c("101.8 cm (range 95 - 110 cm)", 
-                "121 cm TL male/unsexed", 
-                "92.0 cm TL male/unsexed", 
-                "10.1 kg"),
-  Reference  =c("Ref. 122636", "Ref. 122636", "Ref. 247", "Ref. 122636"))  
-
-kable(lhistory)
-```
-
-
-```{r spp, eval=FALSE}
-# Load FAO taxa data
-load("../data/inputs/fao_taxa.RData")
-
-# Read ASFIS species information
-asfis = read.csv("../data/inputs/ASFIS_sp_2021.txt")
-names(asfis)[4] = "scientificName"
-
-# Transform fishbase data for compatibility
-spp = transform(rfishbase::fishbase, scientificName = paste(Genus, Species))
-
-# Define species of interest for SIOFA
-sppSiofa       =c("Centroscymnus coelolepis","Pailona commun","Portugese dogfish","CYO")
-sppSiofa       =as.data.frame(t(array(sppSiofa, c(4, length(sppSiofa)/4))))
-sppSiofa       =cbind(ldply(strsplit(sppSiofa[,1], " ")), sppSiofa)
-names(sppSiofa)=c("Genus", "Species", "scientificName", "french", "name", "FAO")
-
-# Merge species data with fishbase and ASFIS data
-sppSiofa = merge(sppSiofa, spp, by=c("Genus", "Species", "scientificName"), all.x=T)
-sppSiofa = merge(sppSiofa, asfis[,-(12:13)], by="scientificName", all.x=T)
-
-# Extract life history traits using custom functions
-traits = mdply(sppSiofa[,c("Genus", "Species")], function(Genus, Species) {
-  rtn = try(fl_mcupd(Genus=Genus, Species=Species)$traits)
-  if ("try-error" %in% class(rtn)) return(NULL)
-  rtn})
-
-sink(file=NULL)
-priors=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
-  
-  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2)))
-  
-  if ("try-error"%in%is(rtn)) return(NULL)
-  data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
-sink()
-
-# Merge priors and traits data
-lh=merge(priors, traits, by=c("Genus", "Species", "trait"), all=T)
-
-names(lh)=c("Genus","Species","trait","Value","Variance","Hat","CV","mu.upd","CV.upd","lcl.upd","ucl.upd","upper.quant")
-
-save(lh,file="../data/cCoelolepis.RData")
-```
-
-
-**Table `r iTab=iTab+1; iTab`** Life history parameters and priors from `FishLife`.
-
-```{r lh-tab}
+load("../data/pDog.RData")
 load("../data/cCoelolepis.RData")
-
-kable(lh[,c(3:7)])
 ```
-
-
-
-### Length Weight Relationship
-
-```{r, lw, fig.height=4}
-dat   =subset(ieo$biol,!is.na(len)&!is.na(mass))
-female=lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Female"))
-male  =lm(log(mass) ~ log(len), data=subset(dat,mass<50&gender=="Male"))
-
-eqFemale=paste("W", format(coef(female)[1], digits=3), 
-               "L^",format(coef(female)[2], digits=3))
-eqMale  =paste("W",  format(coef(male)[1],  digits=3), 
-               "L^", format(coef(male)[2],  digits=3))
- 
-ggplot(subset(dat, mass < 50), aes(x=len, y=mass)) +
-  geom_point() +
-  geom_smooth(aes(x=len, y=mass, col=gender), method="lm", se=FALSE, formula=y~x) +
-  scale_x_log10() +
-  scale_y_log10() +
-  facet_grid(. ~ gender) +
-  xlab("Log Length (cm)") + ylab("Log Mass (Kg)")+
-  geom_text(aes(x=50, y=50, label=eqFemale), 
-              data=subset(dat, gender=="Female"), hjust=0, vjust=0,
-              check_overlap=TRUE, color="red") +
-  geom_text(aes(x=50, y=50, label=eqMale), 
-              data=subset(dat, gender=="Male"), hjust=0, vjust=0, 
-              check_overlap=TRUE, color="blue")+
-  scale_color_manual(values=c("red","blue"))
-```
-
-**Figure `r iFig=iFig+1; iFig`** Length weight relationship ($W=aL^b$).
-
-
-### Maturity 
-
-Codes for maturity stages are **Females:** 1: immature; 2: maturing; 3: mature; 4: uterine developing; 5: differentiating; 6: expecting; 7: post-natal, spent; 8: Re-starting development; and **Males:** 1: immature; 2: developing; 3: mature; 4: active
-
-
-```{r, mat-ieo, fig.height=4}
-ggplot(mat)+
-  geom_line(aes(len,fitted,col=sex,linetype=Type))+
-  xlab("Length (cm)")+ylab("Proportion Mature") 
-```
-
-**Figure `r iFig=iFig+1; iFig`** Maturity Ogives, provided by IEO.
-
-#### Fit logistic regression model
-```{r, mat-fit, fig.height=4}
-model=glm(mature~len+sex+len:sex+len:Type, data=mat, family=binomial)
-mat$hat=predict(model,type="response")
-
-ggplot(mat, aes(x=len, y=hat, color=sex, linetype=Type)) + 
-  geom_line() + 
-  labs(x="Length", y="Predicted Maturity Probability") + 
-  scale_y_continuous(limits=c(0, 1))
-```
-
-
-**Figure `r iFig=iFig+1; iFig`** Maturity Ogives, fitted using data provided by IEO.
-
-**Table `r iTab=iTab+1; iTab`** Life history parameters and priors from `FishLife`.
-
-```{r}
-names(mat)[8]="Gender"
-kable(ddply(mat,.(Gender,Type), with,
-      data.frame("l50"=(len[(fitted-0.5)^2==min((fitted-0.5)^2)][1]))))
-```
-
-```{r}
-l50<-function(model, sex, Type) {
-  # Extract coefficients from the model
-  coefs     =coef(model)
-  intercept =coefs['(Intercept)']
-  coefLen   =coefs['len']
-
-    # Adjust coefficients based on sex
-  sexEffect =ifelse(sex == "Male", coefs['sexMale'], 0)
-  lenSex    =ifelse(sex == "Male", coefs['len:sexMale'], 0)
-  
-  # Adjust coefficients based on Type
-  typeEffect=ifelse(Type == "Morph", coefs['len:TypeMorph'], 0)
-  
-  # Calculate the adjusted coefficient for len
-  coefLen  =coefLen + lenSex + typeEffect
-  
-  # Calculate the length at maturity=0.5
-  l50      =-(intercept + sexEffect) / coefLen
-  
-  return(l50)}
-
-l50=mdply(expand.grid(Type  =c("Gonad", "Morph"),
-                      Gender=c("Female","Male")), function(Gender,Type) 
-                        data.frame("L50"=l50(model,Gender,Type)))
-kable(l50[,c(2:1,3)],digits=0)
-```
-
-## Catch
-
-```{r, fig.height=4, fig.width=8}
-ctc=ddply(siofa[[3]],.(year),with, data.frame(catch=sum(catchWeight,na.rm=T)))
-ggplot(ctc)+
-  geom_line(aes(year,catch))
-```
-
-
-**Figure `r iFig=iFig+1; iFig`** Time series of aggregated catch biomass.
 
 
 ## Length Frequency Distributions
