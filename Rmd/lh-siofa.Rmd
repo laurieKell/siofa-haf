@@ -1,6 +1,5 @@
 ---
-title: "**SIOFA Sharks**"
-subtitle: "Life History"
+title: "Annex 6: Priors derived from FishBase"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
@@ -55,15 +54,18 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/rfishbase/rfish
 R CMD INSTALL "--no-staged-install" rfishbase
 ```
 
-```{r figurename, echo=FALSE, out.width = '30%', fig.align="center"}
+```{r figurename, echo=FALSE, out.width = '30%', fig.align="center", eval=FALSE}
 setwd("/home/laurie/pCloudDrive/projects/mrag/siofa")
 dirRes =file.path(getwd(),"data/results")
 dirInp =file.path(getwd(),"data/inputs")
 setwd("/home/laurie/pCloudDrive/projects/mrag/siofa/Rmd")
+
+setwd("~/Desktop/active/siofa-haf/Rmd")
+setwd("C:/Users/lauri/OneDrive/Desktop/active/siofa-haf/Rmd")
 ```
 
 ```{r}
-source("~/pCloudDrive/projects/fao/VoI/R/fl_mcupd_fn.R")
+source("../source/fl_mcupd_fn.R")
 ```
 
 
@@ -82,7 +84,7 @@ library(FLBRP)
 library(FLasher)
 library(FLife)
 
-library(FLCandy)
+library(FLCandy) 
 library(mpb)
 
 library(ggplotFL)
