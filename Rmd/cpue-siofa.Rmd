@@ -3,7 +3,7 @@ title: "Annex 5:  Catch and Effort Analysis for Centroscymnus coelolepis"
 subtitle: "Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 fig_width: 6
 fig_height: 4

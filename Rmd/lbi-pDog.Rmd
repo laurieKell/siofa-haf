@@ -1,8 +1,8 @@
 ---
-title: "Annex 3: Length Based Indicators for Centroscymnus coelolepis"
+title: "Annex 4: Length Based Indicators for Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License

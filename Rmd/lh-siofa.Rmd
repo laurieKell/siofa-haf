@@ -2,7 +2,7 @@
 title: "Annex 6: Priors derived from FishBase"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 
@@ -143,11 +143,11 @@ my_density <- function(data,mapping,...){
 
 # Data
 ```{r, data-fao}
-load("/home/laurie/pCloudDrive/projects/mrag/siofa/data/inputs/fao_taxa.rda")
+load("../data/inputs/fao_taxa.RData")
 ```
 
 ```{r, data-asfis}
-asfis=read.csv("/home/laurie/pCloudDrive/projects/mrag/siofa/data/inputs/ASFIS_sp_2021.txt")
+asfis=read.csv("../data/inputs/ASFIS_sp_2021.txt")
 
 names(asfis)[4]="scientificName"
 ```
@@ -207,7 +207,7 @@ siofa=merge(priors,traits,by=c("Genus","Species","trait"),all=T)
 ```
 
 ```{r, save-siofa}
-save(siofa,file="../data/results/siofa.RData")
+save(siofa,file="../data/lh-siofa.RData")
 ```
 
 ```{r, spp}
@@ -266,7 +266,7 @@ mrag=merge(priors,traits,by=c("Genus","Species","trait"),all=T)
 ```
 
 ```{r, save-mrag}
-save(mrag,file="../data/results/mrag.RData")
+save(mrag,file="../data/mrag.RData")
 ```
 
 ```{r, cor}

@@ -3,7 +3,7 @@ title: "**SIOFA Sharks**"
 subtitle: "Annex 3: Life History Parameters for Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 fig_height: 6
 fig_width:  6 
