@@ -1,7 +1,6 @@
 ---
-title: "**SIOFA Sharks**"
-subtitle: "Life History of Centroscymnus coelolepis"
-author: "L Kell"
+title: "Annex 3: Length Based Indicators for Centroscymnus coelolepis"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE
@@ -217,7 +216,8 @@ ggplot(ibiol, aes(len)) +
   geom_vline(aes(xintercept=data),
              data=transform(as.data.frame(lc50( iflen)),gender=unit),col="red")+
   geom_vline(aes(xintercept=data),
-             data=transform(as.data.frame(lmean(iflen)),gender=unit),col="black")
+             data=transform(as.data.frame(lmean(iflen)),gender=unit),col="black")+
+  geom_vline(aes(xintercept=lfm(45,150)),col="green")
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Length distributions by gender for IEO data.
@@ -249,7 +249,8 @@ ggplot(sbiol, aes(len)) +
                     axis.text.x =element_blank(), 
                     axis.ticks.x=element_blank())+
   geom_vline(aes(xintercept=data),data=as.data.frame(lc50( sflen)),col="red")+
-  geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")
+  geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")+
+  geom_vline(aes(xintercept=lfm(45,150)),col="green")
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Length distributions by gender for SIOFA data.

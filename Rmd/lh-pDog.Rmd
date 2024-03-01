@@ -1,9 +1,9 @@
 ---
 title: "**SIOFA Sharks**"
-subtitle: "Length Based Indicators for Centroscymnus coelolepis"
-author: "L Kell"
+subtitle: "Annex 3: Life History Parameters for Centroscymnus coelolepis"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: html_document
 mathjax: TRUE
 fig_height: 6
 fig_width:  6 
@@ -481,9 +481,7 @@ However, relying on a fixed ratio or empirical relationship without considering 
 
 **Table `r iTab=iTab+1; iTab`** .
 ```{r,lmax-i}
-library(kableExtra)
-
-kable(lmax(iflen)[drop=T],col.names = c("Female","Male")) %>% 
+kable(lmax(iflen)[drop=T],col.names = c("Year", "Female","Male")) %>% 
   kable_styling(full_width = FALSE, position = "left") %>%
   column_spec(1, width = "4em")  %>%
   column_spec(2, width = "6em")  %>%
@@ -492,7 +490,7 @@ kable(lmax(iflen)[drop=T],col.names = c("Female","Male")) %>%
 
 **Table `r iTab=iTab+1; iTab`** .
 ```{r,lmax-s}
-kable(lmax(sflen)[drop=T],col.names = c("Female","Male")) %>% 
+kable(lmax(sflen)[drop=T],col.names = c("Year", "Female","Male")) %>% 
   kable_styling(full_width = FALSE, position = "left") %>%
   column_spec(1, width = "4em")  %>%
   column_spec(2, width = "6em")  %>%
