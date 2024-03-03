@@ -1,6 +1,6 @@
 ---
 title: "**SIOFA Sharks**"
-subtitle: "Maturity of Centroscymnus coelolepis"
+subtitle: "Annex 7: Maturity Ogive Disgnostics for Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
