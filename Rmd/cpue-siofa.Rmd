@@ -1,5 +1,6 @@
 ---
-title: "Annex 5:  Catch and Effort Analysis for Centroscymnus coelolepis"
+title: "**SIOFA Sharks**"
+subtitle: "Annex 5:  Catch and Effort Analysis for Centroscymnus coelolepis"
 subtitle: "Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
