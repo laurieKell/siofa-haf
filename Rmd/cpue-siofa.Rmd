@@ -3,7 +3,7 @@ title: "Annex 5:  Catch and Effort Analysis for Centroscymnus coelolepis"
 subtitle: "Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: html_document
 mathjax: TRUE
 fig_width: 6
 fig_height: 4
@@ -48,7 +48,7 @@ setwd("../Desktop/active/siofa-haf/Rmd")
 ```
 
 ## SIOFA dataset
-The dataset contains information on shark catches. In this document we focus on the Portugese dogfish (Centroscymnus coelolepsis). Catch-per-unit-of-effort (CPUEs) are calculated for each gear type using different measures of fishing effort depending on the gear. For the different types of trawlers, CPUE is calculated using the tow duration (hours). For gillnets and entangling nets, the net length (m) is used as soaktime was not available for this gear type. For longlines and vertical lines, the number of hooks set was used and, lastly, for set longlines we used soaktime (hours).
+The dataset contains information on shark catches. In this document we focus on the Portugese dogfish (Centroscymnus coelolepsis). Catch-per-unit-of-effort (CPUEs) are calculated for each gear type using different measures of fishing effort depending on the gear. For the different types of trawlers, CPUE is calculated using the tow duration (hours). For gillnets and entangling nets, the net length (m) is used as soaktime was not available for this gear type. For longlines and vertical lines, the number of hooks set was used and, lastly, for set longlines we used soaktime (hours). The time series is from 2003 - 2022, with low data available in 2003 and 2005, and no data available for 2006 and 2007.
 
 ```{r data}
 # Data preparation
@@ -97,7 +97,7 @@ df %>% group_by(Year,Gear) %>% summarise(sum_cpue = sum(CPUE)) %>% tidyr::spread
 
 ```
 
-The following maps show the spatio-temporal distribution of CPUE for Portugese dogfish in the SIOFA waters for each of the observed records. In two locations on the latitudinal degreess between -30 and -35, the species is found in the highest densities. Though these maps give some indication on the abundance of the species, it should be noted that these results must be intepreted with caution as the reliability of the effort data is unsure. CPUE for all trawlers is calculated using the tow duration. However this does not account for variations in fishing efficiency or effort due to factors like vessel speed or width of the gear.
+The following maps show the spatio-temporal distribution of CPUE for Portugese dogfish in the SIOFA waters for each of the observed records. The species is found in higher densities on the latitudinal degrees between -30 and -35. Though these maps give some indication on the abundance of the species, it should be noted that these results must be intepreted with caution as the reliability of the effort data is unsure. CPUE for all trawlers is calculated using the tow duration. However this does not account for variations in fishing efficiency or effort due to factors like vessel speed or width of the gear.
 The lower map shows the mean CPUE per year over all gear types. Note that for most years, there's only data available from 1 gear type. 
 
 ```{r maps}
@@ -179,14 +179,9 @@ print(p)
 
 ```
 
-```{r cpue}
-# Aggregate CPUE over year/gear
-cpue <- df %>% 
-         group_by(Year,Gear,speciesScientificName) %>% 
-         summarise(mean_CPUE = mean(CPUE),
-                   sd_CPUE = sd(CPUE),
-                   cv_CPUE = sd_CPUE/mean_CPUE)
 
+Mean CPUE is calculated per year. These results should be interpreted with caution as for some years, this calculated with CPUEs from different gear types (e.g. gillnets and trawlers). 
+```{r cpue}
 # Aggregate CPUE over year
 cpue2 <- df %>% 
           group_by(Year) %>% 
@@ -206,7 +201,7 @@ write.csv(cpue2,"SIOFA_cpue.csv",row.names = F)
 
 
 ## IEO dataset
-Logbook data containing catches of Portugese dogfish
+Logbook data containing catches of Portugese dogfish from 2004 to 2022. Years 2006 and 2010 to 2012 are not available. For 2007, only 1 record is available. 
 ```{r data prep}
 # Data preparation
 load("../data/inputs/Sharks_logbooks.Rdata") 
@@ -260,6 +255,9 @@ ggplot(data = ieo_cpue, aes(x = as.factor(year), y = mean_cpue, group = 1)) +
 
 write.csv(ieo_cpue, "IEO_cpue.csv",row.names = F)
 ```
+
+
+For most years, there’s only data available from 1 gear type in both datasets. Combining CPUEs from multiple gear types could be done using a generalized additive model (GAM) in which the different gear types can be taken into account. However, when there is no data available on catches and/or effort from different gear types within a year, it is not possible to run such a model to derive a reliable estimate of relative abundance. 
 
 ```{r CPUE SIOFA and IEO combined plot}
 siofa_ieo <- full_join(cpue2 %>% select(c(Year,mean_CPUE)) %>% rename(SIOFA = mean_CPUE),

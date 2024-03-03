@@ -1,8 +1,9 @@
 ---
-title: "Annex 1: Summary of SIOFA Data"
+title: "**SIOFA Sharks**"
+subtitle: "Annex 1: Summary of SIOFA Data"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: html_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 

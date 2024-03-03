@@ -1,8 +1,9 @@
 ---
-title: "Annex 6: Priors derived from FishBase"
+title: "**SIOFA Sharks**"
+subtitle: "Annex 6: Priors derived from FishBase"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: html_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 

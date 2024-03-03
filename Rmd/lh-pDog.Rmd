@@ -481,7 +481,7 @@ However, relying on a fixed ratio or empirical relationship without considering 
 
 **Table `r iTab=iTab+1; iTab`** .
 ```{r,lmax-i}
-kable(lmax(iflen)[drop=T],col.names = c("Year", "Female","Male")) %>% 
+kable(lmax(iflen)[drop=T],col.names = c("Female","Male")) %>% 
   kable_styling(full_width = FALSE, position = "left") %>%
   column_spec(1, width = "4em")  %>%
   column_spec(2, width = "6em")  %>%
@@ -490,7 +490,7 @@ kable(lmax(iflen)[drop=T],col.names = c("Year", "Female","Male")) %>%
 
 **Table `r iTab=iTab+1; iTab`** .
 ```{r,lmax-s}
-kable(lmax(sflen)[drop=T],col.names = c("Year", "Female","Male")) %>% 
+kable(lmax(sflen)[drop=T],col.names = c("Female","Male")) %>% 
   kable_styling(full_width = FALSE, position = "left") %>%
   column_spec(1, width = "4em")  %>%
   column_spec(2, width = "6em")  %>%
