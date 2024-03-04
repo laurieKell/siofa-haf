@@ -391,7 +391,6 @@ ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
   labs(x="Year", y="Lc50")
 ```
 
-
 **Figure `r iFig=iFig+1; iFig`** . 
 
 
@@ -408,7 +407,6 @@ ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
   geom_hline(aes(yintercept=lfm(45,150)),col="red")
 ```
 
-
 **Figure `r iFig=iFig+1; iFig`** .
 
 
@@ -422,9 +420,7 @@ ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
             data=as.data.frame(iterMedians(lc)))+
   facet_grid(unit~.)+
   labs(x="Year", y="Lc50")
-
 ```
-
 
 **Figure `r iFig=iFig+1; iFig`** .
 
@@ -447,39 +443,16 @@ ggplot(as.data.frame(lmn), aes(x=factor(year), y=data))+
 
 
 The empirical relationship between 
-$L_{\infty}$
-  (asymptotic length, the maximum length towards which the individuals in a population converge as they become infinitely old) and 
+$L_{\infty}$   (asymptotic length, the maximum length towards which the individuals in a population converge as they become infinitely old) and 
+$L_{max}$   (the maximum observed length in a population) is an area of interest in fishery science, particularly for assessing fish growth and population dynamics.
 
-$L_{max}$
-⁡
-  (the maximum observed length in a population) is an area of interest in fishery science, particularly for assessing fish growth and population dynamics.
+While both $L_{\infty}$  and $L_{max}$  provide insights into the growth potential of a species, they are distinct parameters.
 
-While both 
-$L_{\infty}$
-
-  and 
-$L_{max}$
-
-  provide insights into the growth potential of a species, they are distinct parameters. 
-$L_{\infty}$
-
-  is a theoretical parameter derived from growth models (e.g., the von Bertalanffy growth function), whereas 
-⁡
-$L_{max}$
-
-  is an empirical observation from field data.
+$L_{\infty}$ is a theoretical parameter derived from growth models (e.g., the von Bertalanffy growth function), whereas $L_{max}$ is an empirical observation from field data.
 
 Several studies have attempted to establish empirical relationships between these two metrics to facilitate the estimation of one parameter from the other, especially in data-poor situations. However, it's important to note that any empirical relationship may be species-specific and influenced by environmental factors, fishing pressure, and the methodological approaches used in studies.
 
-A commonly cited rule of thumb is that 
-$L_{max}$   is often observed to be approximately 0.95 to 0.99 times 
-$L_{\infty}$
- , acknowledging that most individuals in a population do not reach or exceed the asymptotic length due to natural mortality, predation, or fishing pressure. This approximation allows researchers to estimate 
-$L_{\infty}$
-
-  from 
-$L_{max}$
-  when growth model parameters are unknown or cannot be directly calculated due to lack of data.
+A commonly cited rule of thumb is that $L_{max}$  is often observed to be approximately 0.95 to 0.99 times $L_{\infty}$, acknowledging that most individuals in a population do not reach or exceed the asymptotic length due to natural mortality, predation, or fishing pressure. This approximation allows researchers to estimate $L_{\infty}$ from $L_{max}$ when growth model parameters are unknown or cannot be directly calculated due to lack of data.
 
 However, relying on a fixed ratio or empirical relationship without considering species-specific life history traits, ecological conditions, and the quality of the available data can lead to inaccuracies. Therefore, when such empirical relationships are used, they should be applied with caution and, if possible, validated against more comprehensive data sets or models specific to the species and region of interest.
 
