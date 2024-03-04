@@ -3,7 +3,7 @@ title: "**SIOFA Sharks**"
 subtitle: "Annex 4: Length Based Indicators for Centroscymnus coelolepis"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
@@ -304,7 +304,7 @@ on shark captures such as species, length, weight, sex, maturity, and other rele
 - **Description:** The length at which a certain percentage of the population reaches sexual maturity.
 - **Utility:** Important for ensuring sharks reach maturity before being caught.
 
-## 7. Growth Rates and Maximum Size (L∞)
+## 7. Growth Rates and Maximum Size ($L_{\infty}$)
 
 - **Description:** Estimated from length-at-age data to understand population dynamics.
 - **Utility:** Inform on the health of the stock and the efficacy of current management strategies.
@@ -389,11 +389,10 @@ ggplot(as.data.frame(lc), aes(x=factor(year), y=data))+
             data=as.data.frame(iterMedians(lc)))+
   facet_grid(unit~.)+
   labs(x="Year", y="Lc50")
-
 ```
 
 
-**Figure `r iFig=iFig+1; iFig`** .
+**Figure `r iFig=iFig+1; iFig`** . 
 
 
 ```{r}

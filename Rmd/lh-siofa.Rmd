@@ -3,7 +3,7 @@ title: "**SIOFA Sharks**"
 subtitle: "Annex 6: Priors derived from FishBase"
 author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 
@@ -194,8 +194,6 @@ priors=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
   if ("try-error"%in%is(rtn)) return(NULL)
   data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
-dev.off()
-sink()
 
 traits=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
@@ -203,8 +201,16 @@ traits=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
   if ("try-error"%in%is(rtn)) return(NULL)
   rtn})
+dev.off()
+sink()
 
 siofa=merge(priors,traits,by=c("Genus","Species","trait"),all=T)
+```
+
+```{r}
+for (i in list.files(pattern = "\\.png$")){
+  file.copy(  i,file.path("png",i))
+  file.remove(i)}
 ```
 
 ```{r, save-siofa}
@@ -245,16 +251,16 @@ spp =transform(rfishbase::fishbase,scientificName=paste(Genus,Species))
 sppMrag=merge(sppMrag,spp,             by="scientificName",all.x=T)
 sppMrag=merge(sppMrag,asfis[,-(12:13)],by="scientificName",all.x=T)
 
-sink(file=NULL)
-nulldev()
+#sink(file=NULL)
+#nulldev()
 priors=mdply(sppMrag[,c("Genus","Species")], function(Genus,Species) {
   
   rtn=try(Plot_taxa(Search_species(Genus=Genus, Species=Species)$match_taxonomy,mfrow=c(3,2)))
   
   if ("try-error"%in%is(rtn)) return(NULL)
   data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
-dev.off()
-sink()
+#dev.off()
+#sink()
 
 traits=mdply(sppMrag[,c("Genus","Species")], function(Genus,Species) {
   
