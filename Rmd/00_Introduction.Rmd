@@ -141,6 +141,8 @@ then select 'FLCore', 'ggplotFL', 'FLBRP', 'FLasher', 'FLife', 'mydas'
 Or install from source
 
 ```{r, eval=FALSE}
+chooseCRANmirror()
+
 install.packages("remotes")
 
 library(remotes)
@@ -168,23 +170,6 @@ remotes::install_github("james-thorson/FishLife")
 remotes::install_github("Henning-Winker/SPMpriors")
 ```
 
-```{r, eval=FALSE}
-chooseCRANmirror()
-
-install.packages("tidyverse")
-
-install.packages("ggplot2",dependencies=TRUE)
-install.packages("dplyr",  dependencies=TRUE)
-
-install.packages("remotes")
-
-library(remotes)
-remotes:::install_github("flr/FLCore")
-remotes:::install_github("flr/FLBRP")
-remotes:::install_github("flr/ggplotFL")
-remotes:::install_github("flr/FLfishery")
-remotes:::install_github("flr/FLasher", dependencies=TRUE)
-```
 
 [Back to Top](#top)
 

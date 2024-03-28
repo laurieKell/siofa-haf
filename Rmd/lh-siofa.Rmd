@@ -56,11 +56,6 @@ R CMD INSTALL "--no-staged-install" rfishbase
 ```
 
 
-```{r}
-source("../source/fl_mcupd_fn.R")
-```
-
-
 ```{r, pkgs}
 library(ggplot2)
 library(ggpubr)
@@ -68,6 +63,7 @@ library(GGally)
 library(ggcorrplot)
 library(ggpubr)
 
+library(statcomp)
 library(scales)
 
 library(plyr)
@@ -84,14 +80,10 @@ library(rfishbase)
 library(SPMpriors)
 library(FishLife)
 
-library(statcomp)
-
 library(R.devices)
 ```
 
 ```{r, eval=TRUE}
-library(ggplot2)
-
 # Custom theme for Slidy presentations
 theme_slidy_presentation <- function() {
   theme_minimal(base_size = 18) + 
@@ -114,9 +106,19 @@ theme_slidy_presentation <- function() {
       panel.background = element_rect(fill = "white", color = NA)
     )
 }
-```
 
-```{r, ggpairs}
+theme_my<-function(size=16) {
+  theme_minimal() +
+    theme(text=element_text(size=size),
+          plot.title=element_text(face="bold", size=size+2),
+          axis.title=element_text(size=size-1),
+          legend.position="bottom",
+          legend.title=element_blank(),
+          panel.grid.major=element_line(color="gray80"),
+          panel.grid.minor=element_blank())}
+
+theme_set(theme_my())  
+  
 my_smooth <- function(data,mapping,...){
   ggplot(data=data,mapping=mapping)+
   geom_point(...,size=.5)+
@@ -131,15 +133,10 @@ my_density <- function(data,mapping,...){
 # Data
 ```{r, data-fao}
 load("../data/inputs/fao_taxa.RData")
-```
 
-```{r, data-asfis}
 asfis=read.csv("../data/inputs/ASFIS_sp_2021.txt")
-
 names(asfis)[4]="scientificName"
-```
 
-```{r, data-fishlife}
 spp =transform(rfishbase::fishbase,scientificName=paste(Genus,Species))
 ```
 
@@ -172,14 +169,14 @@ names(sppSiofa)=c("Genus","Species","scientificName","french","name","FAO")
 sppSiofa=merge(sppSiofa,spp,             by=c("Genus","Species","scientificName"),all.x=T)
 sppSiofa=merge(sppSiofa,asfis[,-(12:13)],by=                    "scientificName", all.x=T)
 
-sink(file=NULL)
-nulldev()
 priors=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
-  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2)))
+  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2),plot=FALSE))
   
   if ("try-error"%in%is(rtn)) return(NULL)
   data.frame(trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
+
+source("../source/fl_mcupd_fn.R")
 
 traits=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
@@ -187,8 +184,6 @@ traits=mdply(sppSiofa[,c("Genus","Species")], function(Genus,Species) {
   
   if ("try-error"%in%is(rtn)) return(NULL)
   rtn})
-dev.off()
-sink()
 
 siofa=merge(priors,traits,by=c("Genus","Species","trait"),all=T)
 ```
