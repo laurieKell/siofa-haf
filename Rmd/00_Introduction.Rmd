@@ -1,0 +1,242 @@
+---
+subtitle: "**SIOFA**"
+title: "00:"
+author: "L Kell"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+#knit: (function(inputFile, encoding) {
+#  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+
+[Jump to More Information](#more)
+
+[Jump to References](#references)
+
+
+```{r, knitr, echo=FALSE, warning=FALSE, cache=FALSE}
+library(knitr)
+
+opts_chunk$set(comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =TRUE, 
+               eval      =TRUE,
+               
+               cache     =TRUE, 
+               cache.path="cache/00/",
+               
+               fig.path  ="../tex/figs/00-",
+               fig.width =8,
+               fig.height=6,
+               dev       ="png")
+
+options(digits=3)
+
+iFig=0
+iTab=0
+```
+
+## Introduction {#intro}
+
+
+
+## Libraries
+
+A variety of R packages are required for data manipulation and plotting,
+obtaining life history parameters, and modelling.
+
+#### Data Manipulation 
+
+```{r, pkgs-data}
+library(plyr)
+library(dplyr)
+library(reshape)
+```
+
+#### Plotting
+
+```{r, pkgs-ggplot}
+library(ggplot2)
+library(ggpubr)
+library(ggcorrplot)
+library(GGally)
+
+library(scales)
+
+library(R.devices)
+```
+
+#### FLR
+
+```{r, pkgs-flr}
+library(FLCore)
+library(ggplotFL)
+library(FLBRP)
+library(FLasher)
+library(FLife)
+library(mydas)
+```
+
+
+There are also extensive tutorials. 
+
+#### Life Histories
+
+```{r, pkgs-fb}
+library(rfishbase)
+library(FishLife)
+library(SPMpriors)
+```
+
+#### Utilities
+
+```{r, pkgs-fb}
+library(statcomp)
+```
+
+### Installation 
+
+First the required Libraries (i.e. packages) need to be installed. This can be be done
+from cran, e.g.
+
+Set mirror if needed `chooseCRANmirror()`
+
+```{r, install-util, eval=FALSE}
+install.packages(c("plyr", 
+                   "dplyr", 
+                   "reshape"))
+```
+
+```{r, install-gg, eval=FALSE}
+install.packages(c("ggplot2",
+                   "ggpubr",
+                   "ggcorrplot",
+                   "GGally"))
+```
+
+#### FLR
+
+Or from <https://flr-project.org/>
+
+To install the latest released versions of the FLR packages, and their dependencies
+enter
+
+```{r, eval=FALSE}
+source("http://flr-project.org/R/instFLR.R")
+```
+
+then select 'FLCore', 'ggplotFL', 'FLBRP', 'FLasher', 'FLife', 'mydas'
+
+Or install from source
+
+```{r, eval=FALSE}
+install.packages("remotes")
+
+library(remotes)
+
+remotes:::install_github("flr/FLCore")
+remotes:::install_github("flr/FLBRP")
+remotes:::install_github("flr/ggplotFL")
+remotes:::install_github("flr/FLfishery")
+remotes:::install_github("flr/FLasher", dependencies=TRUE)
+remotes:::install_github("flr/FLife")
+remotes:::install_github("flr/mydas")
+```
+
+
+#### FishBase
+
+There are compatability problems with `FishBase`, so install an earlier
+version. 
+
+These have been fixed now. see <https://james-thorson-noaa.github.io/FishLife/>
+
+```{r, eval=FALSE}
+#remotes::install_github("ropensci/rfishbase",ref="d150f2e0f5")
+remotes::install_github("james-thorson/FishLife")
+remotes::install_github("Henning-Winker/SPMpriors")
+```
+
+```{r, eval=FALSE}
+chooseCRANmirror()
+
+install.packages("tidyverse")
+
+install.packages("ggplot2",dependencies=TRUE)
+install.packages("dplyr",  dependencies=TRUE)
+
+install.packages("remotes")
+
+library(remotes)
+remotes:::install_github("flr/FLCore")
+remotes:::install_github("flr/FLBRP")
+remotes:::install_github("flr/ggplotFL")
+remotes:::install_github("flr/FLfishery")
+remotes:::install_github("flr/FLasher", dependencies=TRUE)
+```
+
+[Back to Top](#top)
+
+## Author information
+
+**Laurence Kell**.
+[laurie\@seaplusplus.co.uk](mailto:laurie@seaplusplus.co.uk){.email}
+
+## Acknowledgements
+
+## Software Versions
+
+**`r version$version.string`**
+
+-   knitr: `r packageVersion('knitr')`
+
+-   FLCore: `r packageVersion('FLCore')`
+
+-   FLBRP: `r packageVersion('FLBRP')`
+
+-   FLasher: `r packageVersion('FLasher')`
+
+-   FLife: `r packageVersion('FLife')`
+
+-   ggplotFL: `r packageVersion('ggplotFL')`
+
+-   rfishbase: `r packageVersion('rfishbase')`
+
+-   SPMpriors: `r packageVersion('SPMpriors')`
+
+-   FishLife: `r packageVersion('FishLife')`
+
+-   plyr: `r packageVersion('plyr')`
+
+-   dplyr: `r packageVersion('dplyr')`
+
+-   reshape: `r packageVersion('reshape')`
+
+-   ggplot2: `r packageVersion('ggplot2')`
+
+-   ggpubr: `r packageVersion('ggpubr')`
+
+-   ggcorrplot: `r packageVersion('ggcorrplot')`
+
+-   GGally: `r packageVersion('GGally')`
+
+**Compiled**: `r date()`
+
+[Back to Top](#top)
+
+[Back to Top](#top)
+
+# References {#references}
+
+[Back to Top](#top)

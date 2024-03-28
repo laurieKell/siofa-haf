@@ -55,15 +55,6 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/rfishbase/rfish
 R CMD INSTALL "--no-staged-install" rfishbase
 ```
 
-```{r figurename, echo=FALSE, out.width = '30%', fig.align="center", eval=FALSE}
-setwd("/home/laurie/pCloudDrive/projects/mrag/siofa")
-dirRes =file.path(getwd(),"data/results")
-dirInp =file.path(getwd(),"data/inputs")
-setwd("/home/laurie/pCloudDrive/projects/mrag/siofa/Rmd")
-
-setwd("~/Desktop/active/siofa-haf/Rmd")
-setwd("C:/Users/lauri/OneDrive/Desktop/active/siofa-haf/Rmd")
-```
 
 ```{r}
 source("../source/fl_mcupd_fn.R")
@@ -71,10 +62,13 @@ source("../source/fl_mcupd_fn.R")
 
 
 ```{r, pkgs}
-library(ggplot2); theme_set(theme_bw())
-
+library(ggplot2)
 library(ggpubr)
 library(GGally)
+library(ggcorrplot)
+library(ggpubr)
+
+library(scales)
 
 library(plyr)
 library(dplyr)
@@ -84,21 +78,13 @@ library(FLCore)
 library(FLBRP)
 library(FLasher)
 library(FLife)
-
-library(FLCandy) 
-library(mpb)
-
 library(ggplotFL)
-library(scales)
 
 library(rfishbase)
 library(SPMpriors)
 library(FishLife)
 
 library(statcomp)
-
-library(ggcorrplot)
-library(ggpubr)
 
 library(R.devices)
 ```
