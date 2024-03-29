@@ -80,11 +80,6 @@ theme_my<-function(size=16) {
 theme_set(theme_my())  
 ```
 
-```{r, setwd, eval=FALSE}
-setwd("~/Desktop/active/siofa-haf/Rmd")
-setwd("C:/Users/lauri/OneDrive/Desktop/active/siofa-haf/Rmd")
-```
-
 
 ```{r}
 # Function to convert species names into abbreviated factor
@@ -243,7 +238,7 @@ are sparse as they do not include information by gender.
 
 ```{r, lhist}
 #info    =species("Centroscymnus coelolepis")
-
+library(kableExtra)
 lhistory=data.frame( 
   Parameter  =c("Maturity (Lm)", "Max Length", "Common Length", "Max Weight"),
   Description=c("101.8 cm (range 95 - 110 cm)", 
