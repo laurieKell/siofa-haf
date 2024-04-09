@@ -1,0 +1,213 @@
+---
+title: "**Annex: 03**"
+subtitle: "Catch per Unit Effort Analysis"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: SIOFA, deepwater sharks, hierchical framework
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               
+               cache.path="cache/03/",
+               fig.path  ="../figs/03/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+```{r libs, cache=FALSE}
+# Load libraries
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(dplyr)     # For data manipulation
+library(ggplot2)   # For plotting 
+library(DHARMa)    # For residuals diagnostics
+library(mgcv)      # For GAM models
+library(randomForest) # Breiman's Random Forest algorithm for classification and regression.
+```
+
+
+```{r, theme, cache=FALSE}
+theme_my<-function(size=16) { 
+  theme_minimal() +
+    theme(text=element_text(size=size),
+          plot.title=element_text(face="bold", size=size+2),
+          axis.title=element_text(size=size-1),
+          legend.position="bottom",
+          legend.title=element_blank(),
+          panel.grid.major=element_line(color="gray80"),
+          panel.grid.minor=element_blank())}
+
+theme_set(theme_my())  
+```
+
+
+```{r data-preparation}
+# Load data
+load("C:/active/siofa-haf/data/siofa.RData")
+load("C:/active/siofa-haf/data/ieo.RData")
+
+## SIOFA data 
+# CPUE calculations and effort variable
+df1 <- siofa$cpue %>% 
+        mutate(CPUE = ifelse(gear %in% c("Bottom trawls (nei)","Midwater trawls (nei)","Single boat bottom otter trawls",
+                                     "Single boat midwater otter trawls","Trawls (nei)"),catchWeight/(TowDuration_minutes/60),
+                      ifelse(gear %in% c("Gillnets and entangling nets (nei)"),catchWeight/NetLength_m,
+                      ifelse(gear %in% c("Set longlines","Longlines (nei)","Vertical lines","Demersal longlines"),catchWeight/(Hooks_set/1000),NA))),
+           Effort = ifelse(gear %in% c("Bottom trawls (nei)","Midwater trawls (nei)","Single boat bottom otter trawls",
+                                     "Single boat midwater otter trawls","Trawls (nei)"),TowDuration_minutes,
+                    ifelse(gear %in% c("Gillnets and entangling nets (nei)"),NetLength_m,
+                    ifelse(gear %in% c("Set longlines","Longlines (nei)","Vertical lines","Demersal longlines"),Hooks_set,NA))))
+
+sort(unique(df1$species))
+# Remove NA catchweight
+df1 <- df1 %>% filter(!is.na(catchWeight))
+
+# Add extra gear column
+df1 <- df1 %>% 
+        mutate(gear2 = ifelse(gear %in% c("Bottom trawls (nei)","Midwater trawls (nei)","Single boat bottom otter trawls",
+                                     "Single boat midwater otter trawls","Trawls (nei)"), "Trawls",
+                       ifelse(gear %in% c("Gillnets and entangling nets (nei)"),"GNS",
+                       ifelse(gear %in% c("Set longlines","Longlines (nei)","Vertical lines","Demersal longlines"),"LLS","NA"))))
+
+## IEO data
+df2 <- ieo$cpue %>% 
+        rename(gear = Arte, species3ACode = COD_SP, species = species, 
+               lat = y3, lon = x3, category = TIPO)
+
+df2$category <- ifelse(df2$category %in% "RETAINED", "Landings",
+                ifelse(df2$category %in% "DISCARDED","Discards","Released"))
+
+# Update species names
+df2$species[df2$species %in% c("Centrophorus squamosus","Centrophorus squamulosus","Centrophorus Squamulosus")] <- "Centrophorus squamosus"
+df2$species[df2$species %in% c("Centrophorus granulosus","Centrophrous granulosus")] <- "Centrophorus granulosus"
+df2$species[df2$species %in% c("Centroscymnus coelolepis","Centroscymnus Coelolepis")] <- "Centroscymnus coelolepis"
+df2$species[df2$species %in% c("Dalatias licha","Dalatias Licha")] <- "Dalatias licha"
+df2$species[df2$species %in% c("Deania calcea","Deania Calcea")] <- "Deania calcea"
+df2$species[df2$species %in% c("Etmopterus  spp","Etmopterus sp","Etmopterus spp","Etmopterus Spp")] <- "Etmopterus spp"
+
+# Remove years prior to 2018 (deemed unreliable)
+df2 <- df2 %>% filter(year >= 2018)
+
+# IEO data does not include any information on depth. We add this using a Random Forest algorithm for classification and regression
+set.seed(123) # Setting a seed for reproducibility
+rf=randomForest(depth~lat+lon, 
+                data=subset(df1,!(is.na(depth)|is.na(lat)|is.na(lon))))
+df2$depth=predict(rf, newdata=subset(df2,!(is.na(lat)|is.na(lon))))
+
+```
+
+```{r overview tables/figures}
+## SIOFA 
+# Catchweight per gear/species
+df1 %>% 
+  group_by(year,gear,species) %>% 
+  summarise(weight = sum(catchWeight)) %>% 
+  ungroup() %>% 
+  ggplot(., aes(x = year, y = weight/1000, fill = gear)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(species),scales="free_y") + 
+  labs(x = "", y = "Catch weight (t)") +
+  scale_x_continuous(limits=c(2000.5,2022.5),breaks=c(seq(2002,2022,4)),expand=c(0,0))
+
+# Table total catches per species
+df1 %>% 
+  group_by(species) %>% 
+  summarise(weight = sum(catchWeight)) 
+
+## IEO
+df2 %>% 
+  group_by(year,gear,species) %>% 
+  summarise(weight = sum(Kilos,na.rm=T)) %>% 
+  ungroup() %>% 
+  ggplot(., aes(x = year, y = weight)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(species),scales="free_y") + 
+  labs(x = "", y = "Catch weight (t)") +
+  scale_x_continuous(limits=c(2017.5,2023.5),breaks=c(seq(2018,2023,1)),expand=c(0,0))
+
+# Table total catches per species and category
+df2 %>% 
+  filter(!category %in% "Released") %>% 
+  group_by(category,species) %>% 
+  summarise(weight = sum(Kilos)) %>% 
+  ungroup() %>% 
+  tidyr::spread(category,weight)
+
+```
+
+```{r CPUE per species}
+## SIOFA
+# Mean CPUE per year/gear/species # gears aggregated
+cpue1 <- df1 %>% 
+          filter(!is.na(CPUE),!CPUE<=0,!CPUE %in% "Inf") %>% 
+          group_by(year,gear2,species) %>% 
+          summarise(mean_CPUE = mean(CPUE))
+
+ggplot(data = cpue1, aes(x = year, y = mean_CPUE, fill = gear2)) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(vars(species),scales="free_y") +
+  labs(x = "", y = "Mean CPUE")
+
+
+gears <- c("Bottom trawls (nei)","Demersal longlines","Gillnets and entangling nets (nei)",
+           "Longlines (nei)","Midwater trawls (nei)","Set longlines",
+           "Single boat bottom otter trawls","Single boat midwater otter trawls","Trawls (nei)")
+
+# Boxplot for all gears (except dropline and vertical lines (only 2 records each))
+for(i in gears){
+  lfs <- df1 %>% filter(gear %in% i, !is.na(CPUE), !CPUE<=0, !CPUE %in% "Inf")
+  ggplot(lfs,aes(x=as.character(year),y=CPUE,group=year)) +
+    geom_boxplot() +
+    facet_wrap(vars(species),scales="free_y") +
+    ggtitle(i) +
+    labs(x = "", y = "CPUE") 
+}
+
+## IEO
+# Mean CPUE per year/species -> only longlines in IEO data 
+cpue2 <- df2 %>% 
+          filter(!is.na(CPUE),!CPUE<=0) %>% 
+          group_by(year,gear,species) %>% 
+          summarise(mean_CPUE = mean(CPUE))
+
+ggplot(data = cpue2, aes(x = year, y = mean_CPUE, fill = gear)) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(vars(species),scales="free_y") +
+  labs(x = "", y = "Mean CPUE")
+
+# Boxplot CPUE
+df2 %>% 
+  filter(!is.na(CPUE),!CPUE<=0) %>% 
+  ggplot(., aes(x = year, y = CPUE, group = year)) +
+  geom_boxplot() + 
+  facet_wrap(vars(species),scales="free_y")
+
+cpue3 <- full_join(cpue1 %>% rename(mean_cpue_SIOFA = mean_CPUE, gear = gear2,
+                                    species = species),
+                   cpue2 %>% rename(mean_cpue_IEO = mean_CPUE))
+
+```

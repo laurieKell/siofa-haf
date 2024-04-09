@@ -1,0 +1,98 @@
+---
+title: "Stock Assessment Framework for Deepwater Sharks in SIOFA"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+#  powerpoint_presentation:
+  html_document:
+    toc: true
+    toc_float: true
+    #toc_depth: 2
+    collapsed: true
+    smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, lib}
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales, better for visibility
+```
+
+```{r, eval=FALSE}
+setwd("/home/laurie/Desktop/projects/siofa/Rmd")
+```
+
+```{r, data}
+# Data Preparation
+# Load data from an Excel file into data frames
+cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+
+# Adjusting time format
+adjust_time_format<-function(time)
+  format(as.POSIXct(time * 86400, origin = "1970-01-01", tz = "UTC"), "%H:%M:%S")
+
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$Time       =adjust_time_format(cpue$Time)
+cpue$Year       =year(cpue$Date)
+
+# Data Visualization and Analysis Functions
+
+catchSmry<-function(data) {
+  # Filter out NAs
+  filtered=filter(data, !is.na(Latitude), !is.na(Longitude), !is.na(Year))
+  # Group data
+  group_by(filtered, speciesScientificName, Gear, Year, Latitude, Longitude)}
+
+cSmry=catchSmry(cpue)
+```
+
+## Introduction
+
+-   Overview of deepwater shark species within SIOFA's jurisdiction
+-   Highlighting their vulnerability and importance of sustainable management
+
+## Challenges
+
+-   Discussing the challenges in assessing deepwater shark populations
+-   Data limitations and life-history characteristics
+
+## Framework Overview
+
+-   Introducing the hierarchical, risk-based assessment framework proposed
+
+## Data Sources
+
+-   Detailing novel data collection methods like tagging and eDNA
+
+## Adaptive Management Strategies
+
+-   Need for flexible management approaches that evolve with new data
+
+## Model Validation
+
+-   Importance of using validated models for stock assessment
+
+## Stakeholder Engagement
+
+-   Role of engaging stakeholders in the management process
+
+## Management Measures
+
+-   Potential measures including spatial management and gear modification
+
+## Conclusion
+
+-   Reiterating the importance of the proposed framework

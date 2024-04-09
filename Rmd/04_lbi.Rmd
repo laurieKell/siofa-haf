@@ -1,0 +1,334 @@
+---
+title: "**Annex: 04**"
+subtitle: "**Length based indicators**"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: SIOFA, deepwater sharks, hierchical framework
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+---
+
+
+```{r, knitr, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/04/",
+               fig.path  ="../figs/04/",
+               fig.width =8, 
+               fig.height=4,
+               dev       ="png")
+iFig=0
+iTab=0
+```
+
+
+```{r, libs, cache=FALSE}
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+
+library(ggstats) 
+
+library(FLCore)
+library(ggplotFL)
+
+library(rfishbase)
+library(SPMpriors)
+library(FishLife)
+
+library(kableExtra)
+
+library(mgcv)         # GAMs
+library(lme4)         # Fitting Linear Mixed-Effects Models using lme4
+```
+```{r, source}
+source("../source/fnLBI.R")
+source("../source/fnBox.R")
+source("../source/themes.R")
+```
+
+```{r, spp}
+load("../data/lh.RData")
+load("../data/spp.RData")
+```
+
+```{r, ieo}
+load("../data/ieo.RData")
+
+biol=subset(ieo$biol,gender%in%c("Male","Female"))
+nobs=subset(ddply(biol,.(species), with, data.frame(n=sum(!is.na(len)))),n>100)
+nspp=ddply(biol,.(species,year,gender), with, data.frame(n=sum(!is.na(len))))
+  
+len =subset(biol,species%in%nobs$species)[,c("species","year","gender","depth","len")]
+lmax=transform(ddply(len,.(species,gender), with, data.frame(lmax=max(len))),lopt=2/3*lmax*0.95)
+len =merge(merge(len,lmax),nobs)
+
+fln=dlply(transform(subset(len,n>100),len=as.integer(len)), .(species), with,  
+          as.FLQuant(data.frame(len=len,unit=gender,year=year,data=sum(!is.na(len)))))
+
+ind =ddply(len, .(species,gender), with, mydas:::lenInd(len,1,1,lopt))
+ind =merge(ind,lmax)
+
+indy =ddply(len, .(species,gender,year), with, mydas:::lenInd(len,1,1,lopt))
+indy =merge(indy,lmax)
+
+save(nobs,len,fln,ind,indy,file="../data/ieoLen.RData")
+```
+
+
+```{r, siofa}
+################################################################################
+load("../data/siofa.RData")
+
+biol=subset(siofa$biol,gender%in%c("Male","Female"))
+biol=subset(biol,!is.na(len))
+
+nobsAll=ddply(biol,.(species), with, data.frame(n=sum(!is.na(len))))
+nobs   =subset(nobsAll,n>100)
+nspp=ddply(biol,.(species,year,gender), with, data.frame(n=sum(!is.na(len))))
+  
+len =subset(biol,species%in%nobs$species)[,c("species","year","gender","depth","len")]
+lmax=transform(ddply(len,.(species,gender), with, data.frame(lmax=max(len))),lopt=2/3*lmax*0.95)
+len =merge(merge(len,lmax),nobs)
+
+fln=dlply(transform(subset(len,n>100),len=as.integer(len)), .(species), with,  
+          as.FLQuant(data.frame(len=len,unit=gender,year=year,data=sum(!is.na(len)))))
+
+ind =ddply(len, .(species,gender), with, mydas:::lenInd(len,1,1,lopt))
+ind =merge(ind,lmax)
+
+save(nobs,len,fln,ind,file="../data/siofaLen.RData")
+```
+
+## Length Frequency Distributions
+
+
+```{r, table-ieo}
+kab1=kable(nobsAll,col.names=c("Species","Number of Observations"))
+kab1
+```
+
+```{r, plot-ieo, fig.height=8,fig.width=10}
+dat=cast(priors[,c("Genus","Species","trait","data")],Genus+Species~trait,value="data")
+dat=merge(dat,sppSiofa, by=c("Species","Genus"))
+
+lmlinf=transmute(cast(subset(priors,trait%in%c("Loo","Lm")),Genus+Species~trait,value="data"),
+                   species=paste(Genus,Species),lmlinf=exp(Lm-Loo))
+
+lfd=ggplot(len, aes(x=len/lmax,weight=1/n, fill=gender))+
+   geom_histogram(binwidth=0.02, position="identity", alpha=0.5) +
+   facet_wrap(~species)+
+   geom_vline(aes(xintercept=lc/lmax,   col=gender),data=subset(ind,   species%in%unique(len$species)))+
+   geom_vline(aes(xintercept=lmax5/lmax,col=gender),data=subset(ind,   species%in%unique(len$species)))+
+   geom_vline(aes(xintercept=lmlinf),linewidth=1,   data=subset(lmlinf,species%in%unique(len$species)))+
+   xlab(expression(L/L[infinity])) + ylab("") +
+   scale_fill_manual(values=c("red","blue","purple"))+
+   scale_x_continuous(limits=c(0,1.1))+
+   scale_y_continuous(limits=c(0,0.2))+
+   geom_text(aes(label=paste("N",n, sep="="), x=0.10, y=0.18))+#, vjust=-1, hjust="top")+
+   theme_bw(16)+ 
+   theme(legend.position="bottom",
+        #axis.title.x = element_text(colour='NA'), 
+        axis.ticks =   element_line(colour="NA"),
+        axis.text.x=element_text(angle=0, hjust=0),
+        strip.text.y = element_blank())
+lfd
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length distributions for IEO data, where more than 100 observations, thick black line is length at maturity ($L_{50}$), and the bracketing lines are $L_c$ and $L_{max5}$
+
+```{r, tab-ieo}
+dat=ind[,c("species","gender","lc","l25","lmaxy","lbar","lmean","lmax5","l95","pmega")]
+names(dat)[c(1:2)]=c("Species","Gender")
+kab2=kable(dat,digits=2)
+kab2
+```
+
+
+```{r, fig.height=6, fig.width=6}
+load("C:/active/siofa-haf/data/ieo.RData")
+
+dat=subset(merge(ieo$biol,nobs),n>100&!is.na(len)&species=="Centroscymnus coelolepis")
+
+ggplot(dat)+
+  geom_point( aes(depth,len,col=area),size=1.1)+
+  geom_smooth(aes(depth,len),  se=FALSE, span=5)+
+  facet_wrap(~area)+
+  xlab("Depth (M)")+ylab("Length (cm)")
+```
+
+
+```{r, fig.height=8, fig.width=6}
+p1=ggplot(subset(dat,area==2))+
+  geom_point( aes(depth,len),size=1.1)+
+  geom_smooth(aes(depth,len),  se=FALSE, method="lm", 
+              data=subset(dat,area==2&depth>1000))+
+  facet_grid(year~.)+
+  xlab("Depth (M)")+ylab("Length (cm)")
+
+p2=ggplot(subset(dat,area==2))+
+  geom_histogram(aes(x=depth))+
+  facet_grid(year~.)+
+  xlab("Depth (M)")+ylab("")
+
+ggarrange(ncol=2,nrow=1,
+          labels=c("a)", "b)"),
+          p1,p2) 
+```
+
+
+pwr.f2.test(u=4, v=NULL, f2=0.15, sig.level=0.05, power=0.8)
+
+To predict the mean of the dependent variable `len` from the covariates `gender`, `year`, and `area` in R, you will need to perform a linear regression analysis. This process involves fitting a model to your data and then checking which covariates significantly contribute to the model. Here's a step-by-step guide on how to do this:
+
+### Step 2: Fit a Linear Model
+Next, you will fit a linear model using the `lm` function. This function will estimate the coefficients for each covariate.
+
+
+```{r, fig.height=6, fig.width=6}
+dat=subset(merge(ieo$biol,nobs),n>100&!is.na(len)&species=="Centroscymnus coelolepis"&area=="2")
+
+mdl=gam(len~gender+factor(year)+depth, data=dat)
+```
+
+### Step 3: Check for Significance
+After fitting the model, you can check the significance of each covariate using the `summary` function, which will give you the p-values for each covariate.
+
+The summary output will include p-values for each covariate. Typically, a p-value of less than 0.05 is considered statistically significant, indicating that the covariate has a significant effect on the dependent variable.
+
+
+```{r, fig.height=6, fig.width=6}
+summary(mdl)
+```
+
+```{r, fig.height=6, fig.width=6}
+library(broom)
+
+# Use broom to tidy the model output
+tidy=tidy(mdl)
+
+# Create a table with knitr::kable and then style it with kableExtra
+kable(tidy, format = "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+```{r, eval=FALSE}
+mdl2=lmer(len~factor(year)+gender+depth, data=dat)
+summary(mdl2)
+```
+
+### Step 5: Predict the Mean
+Once you have a refined model with only significant covariates, you can predict the mean of `len` using the `predict` function. If you want to predict the mean for specific values of the covariates, you can create a new data frame with those values.
+
+# Predicting the mean for a specific gender and area
+
+```{r}
+hat=predict(mdl, type = "response", newdata=transform(dat,depth=mean(depth,na.rm=T)))
+dat=cbind(dat,hat=hat)
+dat=subset(dat,!is.na(len)&area=="2")
+
+fn<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.95))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+pDogMn=ggplot(aes(y=len,x=ac(year)), data=dat)+
+   stat_summary(fun.data=fn, geom="boxplot")+  
+   #geom_smooth(method = "lm", aes(group = 1), color = "red", se = FALSE) +
+   facet_grid(area~gender)+
+   scale_fill_manual(values=c("red","blue","purple"))+
+   xlab("Year")+ylab("Length (cm)")
+pDogMn
+```
+
+```{r, len-ieo, fig.width=8, fig.height=6}
+load("../data/ieoLen.RData")
+
+fln[["Centroscymnus coelolepis"]][is.na(fln[["Centroscymnus coelolepis"]])]=0
+fln2=fln[["Centroscymnus coelolepis"]][,ac(2019:2023)]
+  
+indy=subset(indy,species=="Centroscymnus coelolepis")
+
+pDogLFD=ggplot(subset(len,species=="Centrophorus granulosus"&year>=2019), aes(len)) +
+  geom_histogram(bins=50, fill="skyblue", color="blue")+
+  scale_x_continuous(limits=c(0,175))+
+  coord_flip()+
+  facet_grid(gender~year, scales="free_y") +
+  #scale_y_continuous(breaks=function(x) {c(0,round(max(x,na.rm=TRUE)))})+  
+  #geom_text(data=subset(nobs,sp=="CYO"&year>=2019), aes(label=paste("n =", n), x=Inf, y=Inf), 
+  #          position=position_nudge(x=-0.25,y=-0.5), hjust=1, vjust=1)+
+  xlab("Length (cm)")+ylab("")+ 
+  theme(legend.position="bottom", 
+                    axis.title.x=element_blank(), 
+                    axis.text.x =element_blank(), 
+                    axis.ticks.x=element_blank())+
+  geom_vline(aes(xintercept=exp(4.3904107)),col="black",linewidth=1.2)+
+  geom_vline(aes(xintercept=l50,col=gender),
+             data=data.frame(gender=unique(len$gender),l50=c(IEO=111,IEO=92)),linewidth=1.2)
+  #geom_vline(aes(xintercept=lc),
+  #            data=indy,col="red")+
+  #geom_vline(aes(xintercept=lmax5),
+  #            data=indy,col="red")
+  #geom_vline(aes(xintercept=data),
+  #           data=transform(as.data.frame(fln2),gender=unit),col="black")+
+  #geom_vline(aes(xintercept=lfm(45,150)),col="green")
+  #geom_vline(aes(xintercept=exp(subset(priors,Species=="coelolepis"&trait=="Lm")$data)))
+  #geom_vline(aes(xintercept=lmax5,col=gender),data=subset(ind,   species=="Centroscymnus coelolepis"))
+
+
+pDogLFD 
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length distributions by gender for CYO IEO data.
+
+
+
+### SIOFA
+
+
+```{r,len-siofa, fig.width=8, fig.height=4, eval=FALSE, eval=FALSE}
+load("../data/siofa.RData")
+
+sbiol=merge(siofa$biol[,c(1,11:12,16)],siofa$cpue[,c("OPE_ID","year")])[,-1]
+names(sbiol)=c("len","mass","unit","year")
+sbiol=subset(sbiol,!is.na(len)&unit%in%c("Male","Female"))
+nobs =ddply(sbiol,.(unit,year), with, data.frame(n=length(len)))
+
+lfd=ggplot(sbiol, aes(len)) +
+  geom_histogram(bins=50, fill="skyblue", color="blue") +
+  coord_flip()+
+  facet_grid(unit~year, scales="free_y") +
+  #scale_y_continuous(breaks=function(x) {c(0,round(max(x,na.rm=TRUE)))})+
+  geom_text(data=nobs, aes(label=paste("n =", n), x=Inf, y=Inf), 
+            position=position_nudge(x=-0.5,y=-0.5), hjust=1, vjust=1)+
+  xlab("Length (cm)")+ylab("")+ 
+  theme(legend.position="bottom", 
+                    axis.title.x=element_blank(), 
+                    axis.text.x =element_blank(), 
+                    axis.ticks.x=element_blank())+
+  geom_vline(aes(xintercept=data),data=as.data.frame(lc50( sflen)),col="red")+
+  geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")+
+  geom_vline(aes(xintercept=lfm(45,150)),col="green")
+lfd
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length distributions by gender for SIOFA data.

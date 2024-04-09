@@ -1,0 +1,297 @@
+---
+title: "**Annex: 21**"
+subtitle: "Estimates of Conservation Status (Task 5)"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: SIOFA, deepwater sharks, hierchical framework
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+---
+
+The aim of Task 7 is to evaluate the conservation status of the main shark species
+caught by EU fleets in  the SIOFA area, using the frameworks and methodologies developed 
+in Task 6. 
+
+```{r setwd}
+setwd("C:/active/siofa-haf/Rmd")
+```
+
+```{r knitr, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/21/",
+               fig.path  ="../figs/21/",
+               fig.width =8, 
+               fig.height=4,
+               dev       ="png")
+iFig=0
+iTab=0
+```
+
+
+```{r libs, cache=FALSE}
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+
+library(ggstats) 
+
+library(FLCore)
+library(ggplotFL)
+library(scales)
+
+library(rfishbase)
+library(SPMpriors)
+library(FishLife)
+
+library(kableExtra)
+
+library(mgcv)         # GAMs
+library(lme4)         # Fitting Linear Mixed-Effects Models using lme4
+```
+
+```{r source}
+source("../source/fnLBI.R")
+source("../source/fnBox.R")
+source("../source/themes.R")
+```
+
+
+```{r theme, cache=FALSE}
+theme_my<-function(size=16) {
+  theme_minimal() +
+    theme(text=element_text(size=size),
+          plot.title=element_text(face="bold", size=size+2),
+          axis.title=element_text(size=size-1),
+          legend.position="bottom",
+          legend.title=element_blank(),
+          panel.grid.major=element_line(color="gray80"),
+          panel.grid.minor=element_blank())}
+
+theme_set(theme_my())  
+```
+
+```{r data}
+load("../data/lh.RData")
+load("../data/spp.RData")
+
+load("../data/ieo.RData")
+load("../data/siofa.RData")
+
+load("../data/results/level2.RData")  
+```
+
+
+#8.1 Available Data and Appropriate Methods
+
+This section summarises the data avaiable to assess the conservation status of key deep-water shark species within the SIOFA area, based on tbe observer and catch data from IEO. It highlight the main conclusions drawn from the available data and the implications of current fishing regimes for these species.
+
+
+## 8.1 Available Data and Appropriate Methods
+
+### Data Sources and Quality
+
+- Summary of data sources used in the assessment, including FishBase, literature reviews, and bycatch data.
+- Discussion on the quality and reliability of the data, referencing the hierarchical framework and data quality scores.
+
+### Methodological Framework
+
+- Description of the hierarchical assessment framework and its application to deep-water sharks.
+- Explanation of the Productivity Susceptibility Analysis (PSA) and its role in the assessment process.
+- Overview of the stock assessment models considered, including biomass dynamic models and length-based assessments.
+
+## 8.2 Conservation Status in Light of Current Fishing Regimes
+
+### Impact of Fishing Practices
+- Analysis of how current fishing practices, such as bycatch and targeted fishing, affect the conservation status of deep-water sharks.
+- Examination of the interaction between fishing fleets and shark stocks, focusing on susceptibility and spatial overlap.
+
+### Management Measures and Effectiveness
+- Review of existing management measures within the SIOFA area and their effectiveness in conserving deep-water shark populations.
+- Consideration of additional measures, such as move-on rules and gear restrictions, and their potential impact.
+
+### Recommendations for Sustainable Management
+- Suggestions for improving current management strategies based on the assessment findings.
+- Identification of research needs and knowledge gaps that could inform future management decisions.
+
+## Summary
+
+A synthesis of the key points from the conservation status assessment, including:
+- A table summarizing the probability distributions and overlap of AquaMaps and other spatial data sources.
+- Discussion on the implications of the findings for the management and conservation of deep-water sharks.
+- Final thoughts on the importance of adaptive management strategies in the face of ecological uncertainties.
+
+## References
+
+
+## Level 1
+
+### Species List
+
+**Table `r iTab=iTab+1; iTab`** Total Catches, aggregated over all years, in the IEO database.
+
+```{r spp}
+spp=data.frame(species=unique(siofa$cSmry$species))
+spp=transform(spp,Genus  =laply(strsplit(spp$species, " "), function(x) x[[1]]),
+                  Species=laply(strsplit(spp$species, " "), function(x) x[[2]]))
+dat=ddply(subset(siofa$cSmry,!is.na(catchWeight)), .(species,year), with, sum(catchWeight))
+dat=merge(dat,spp)
+
+dt1=ddply(dat, .(species), with, data.frame(total=sum(V1)/1000))
+dt1=dt1[rev(order(dt1$total)),]
+
+kab=kable(dt1,digits=3,row.names=FALSE, col.names=c("Species", "Weight (Tonnes)"))
+kab=kable_styling(kab, full_width = FALSE)
+kab=column_spec(kab, 1, width = "2in")
+kab=column_spec(kab, 2, width = "2in")
+kab
+```
+
+```{r catch, fig.height=8, fig.width=10}
+dt2=transform(merge(dat,
+                    ddply(dat, .(species), with, data.frame(max=max(V1)))),
+              catch=V1/max)
+dt3=melt(cast(dt2,year~species,value="catch"))
+dt3$Genus  =laply(strsplit(dt3$species, " "), function(x) x[[1]])
+dt1$Genus  =laply(strsplit(dt1$species, " "), function(x) x[[1]])
+
+ggplot(aes(year,value,col=Genus),data=dt3)+
+    geom_path()+
+    geom_point()+
+    facet_grid(species~.)+
+  scale_y_continuous(breaks=NULL)+
+  theme(legend.position="none",strip.text=element_blank())+
+  geom_text(aes(label=paste(species,": (",as.integer(total)," tonnes)",sep=""),x=2000.5,y=0.75), hjust=0, data=dt1)+
+  xlab("Year")+ylab("")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Summary of catch data from IEO
+
+
+```{r msy, fig.height=8,fig.width=10}
+m=ddply(subset(priors,trait=="M"), .(Genus,Species,trait), with,
+           data.frame(iter=seq(100),dev=exp(rnorm(100,data,var)),mean=data,sd=var^0.5))
+r=ddply(subset(priors,trait=="r"), .(Genus,Species,trait), with,
+           data.frame(iter=seq(100),dev=rnorm(100,data,var),mean=data,sd=var^0.5))
+gt=subset(priors,trait=="G"&Species%in%unique(r$Species)&Genus%in%unique(r$Genus))
+
+h<-function(x) 1-exp(-x)
+
+fn<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.66))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+spp=inventory[!duplicated(inventory$spp),"spp"]
+
+dat=subset(rbind(cbind("Assumption"="M",transform(m,x=h(dev*0.41))),
+                 cbind("Assumption"="r",transform(r,x=h(dev*0.5)))),
+           paste(Genus,Species)%in%spp)
+dat=subset(dat,paste(Genus,Species)%in%dt1$species)
+
+ggplot(dat,aes(x,y=paste(Genus,Species)))+  
+   stat_summary(fun.data=fn, geom="boxplot")+  
+   labs(title = "Estimates of Fmsy (% per Year)")+
+   facet_grid(Genus~Assumption,scale="free",space="free")+
+   theme_bw(16)+ 
+   theme(legend.position="right",
+        #axis.title.x = element_text(colour='NA'), 
+        axis.ticks =   element_line(colour="NA"),
+        axis.text.x=element_text(angle=-45, hjust=0),
+        strip.text.y = element_blank())+
+   xlab("Rates")+ylab("")+
+   scale_x_continuous(breaks=c(0,0.05,0.10,0.15),labels=percent)
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of $F_{MSY}$ based on life-history theory, boxes indicate the 33rd to 66th percentiles and the median, the lower whisker shows the 5th percentile.
+
+
+```{r doubling, fig.height=8,fig.width=10}
+fn<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.95))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+#gt=subset(mrag,trait=="ln_G")
+
+lvl=priors[!duplicated(priors[,c("Genus","Species")]),c("Genus","Species","level")]
+r  =merge(r,lvl)
+r  =subset(r,paste(Genus,Species)%in%dt1$species)
+gt =subset(gt,paste(Genus,Species)%in%gt$species)
+
+ggplot(r,aes(x=log(2)/dev*2,y=paste(Genus,Species)))+  
+   stat_summary(fun.data=fn, geom="boxplot")+  
+   #geom_point(aes(x=data,y=paste(Genus,Species)),data=gt,col="red")+
+   #labs(title = "Population Doubling Time at Bmsy (Years)")+
+   facet_grid(Genus~.,scale="free",space="free")+
+   theme_bw(16)+ 
+   theme(legend.position="right",
+        #axis.title.x = element_text(colour='NA'), 
+        axis.ticks =   element_line(colour="NA"),
+        axis.text.x=element_text(angle=-45, hjust=0),
+        strip.text.y = element_blank())+
+   geom_hline(aes(yintercept=0))+
+   theme(axis.text.x=element_text(angle=-45, hjust=0))+
+   xlab("Population Doubling Time (Years)")+ylab("")+
+   scale_x_continuous(expand = c(0, 0), limits = c(0, NA))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of population doubling tims based on life-history theory, boxes indicate the 33rd to 66th percentiles and the median, the lower whisker shows the 5th percentile.
+
+ 	 	 	 	 	 	 	 
+
+**Table `r iTab=iTab+1; iTab`** Number of of observations of length
+
+```{r lengths}
+kab1
+```
+
+```{r lfd, fig.height=6, fig.width=8}
+lfd
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length frequencies for IEO data. The black line is L50, the lower lines are Lc, and the upper lines are Lmax
+
+
+
+**Table `r iTab=iTab+1; iTab`** . 
+
+```{r lbi}
+kab2
+```
+
+```{r pdogMnLen, fig.height=6, fig.width=8}
+pDogMn
+```
+
+**Figure `r iFig=iFig+1; iFig`** 
+
+
+```{r pdogLFD, fig.height=6, fig.width=8}
+pDogLFD
+```
+
+**Figure `r iFig=iFig+1; iFig`** Length frequencies for IEO P. dog, data. The black line is L50, the lower lines are Lc, and the upper lines are Lmax
+ 
+ 
+

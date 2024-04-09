@@ -1,0 +1,300 @@
+---
+title: "**Annex: 02:**"
+subtitle: "Life history priors"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: SIOFA, deepwater sharks, hierchical framework
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+---
+
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               
+               cache     =TRUE,
+               cache.path="cache/02/",
+               
+               fig.path  ="../figs/02/",
+               fig.width =10,
+               fig.height=8,
+               dev       ="png")
+
+iFig=0
+iTab=0
+```
+
+```{r, eval=FALSE}
+install.packages("https://cran.r-project.org/src/contrib/Archive/rfishbase/rfishbase_3.0.0.1.tar.gz", repos=NULL, type='source')
+
+R CMD INSTALL "--no-staged-install" rfishbase
+```
+
+
+```{r, pkgs}
+library(ggplot2)
+library(ggpubr)
+library(GGally)
+library(ggcorrplot)
+library(ggpubr)
+
+library(statcomp)
+library(scales)
+
+library(plyr)
+library(dplyr)
+library(reshape)
+
+library(FLCore)
+library(FLBRP)
+library(FLasher)
+library(FLife)
+library(ggplotFL)
+
+library(rfishbase)
+library(SPMpriors)
+library(FishLife)
+
+library(R.devices)
+```
+
+```{r, source}
+source("../source/themes.R") 
+source("../source/fl_mcupd_fn.R") 
+```
+
+
+# Data
+```{r, spp-list}
+load("../data/spp.RData")
+load("../data/lh.RData")
+
+load("../data/ieo.RData")
+load("../data/siofa.RData") 
+```
+
+
+```{r, cor, fig.height=8, fig.width=8}
+lh=cast(priors,Genus+Species~trait,value="data")  
+lh=transmute(lh,spp=paste(Genus,Species),linf=exp(Loo),k=exp(K),l50linf=exp(Loo-Lm),l50=exp(Lm),G=G,M=exp(M),r=r)
+
+ggpairs(lh[,-(1)],
+              #mapping = ggplot2::aes(color=rank(dat$hmsy)<6))+
+     lower = list(continuous = wrap(my_smooth)), 
+     diag=list(continuous=wrap(my_density,alpha=0.2)))+
+     theme_bw(16)+theme(legend.position = "none",  
+                    axis.title.y = element_text(colour='NA'), 
+                    axis.text.y  = element_text(colour="NA", angle=90), 
+                    axis.ticks.y = element_line(colour="NA"),
+                    axis.ticks =   element_line(colour="NA"),
+                    
+                    axis.title.x = element_blank(), 
+                    axis.text.x  = element_blank(), 
+                    axis.ticks.x = element_blank(), 
+                    
+                    plot.margin = unit(c(0, 0, 0, 1), "lines"),
+                    panel.background = element_rect(fill   ="NA", colour="NA"), 
+                    #panel.border     = element_rect(fill   ="NA", colour="NA"), 
+                    panel.grid.major = element_line(colour ="NA"), 
+                    panel.grid.minor = element_line(colour ="NA"))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Relationships between life history relationships, individual growth parameters $L_{\infty}$ $k$, length at maturity ($L_{50}$), and their ratio ($L{50}/L_{\infty}$) and derived quantities natural mortality ($M$), population grpwth rate ($r$) and generation time ($G$).
+
+
+```{r, priors, fig.height=8,fig.width=8}
+m=ddply(subset(priors,trait=="M"), .(Genus,Species,trait), with,
+           data.frame(iter=seq(100),dev=exp(rnorm(100,data,var)),mean=data,sd=var^0.5))
+r=ddply(subset(priors,trait=="r"), .(Genus,Species,trait), with,
+           data.frame(iter=seq(100),dev=rnorm(100,data,var),mean=data,sd=var^0.5))
+rfpts=rbind(cbind(Derivation="M",mutate(m,Fmsy=0.41*dev,Flim=1.5*Fmsy,Fcrash=2*Fmsy)),
+            cbind(Derivation="r",mutate(r,Fmsy=0.5*dev, Flim=1.5*Fmsy,Fcrash=2*Fmsy))) 
+gt=subset(priors,trait=="G"&Species%in%unique(r$Species)&Genus%in%unique(r$Genus))
+```
+
+```{r, m, fig.height=8,fig.width=8}
+ggdensity(m,x="dev",fill="Species",alpha=0.25)+
+  facet_wrap(Genus~.,scales="free_y")+
+  scale_x_continuous(limits=c(0,.5),breaks=c(0,0.25,0.5))+    
+  theme(legend.position = "none", 
+                    axis.title.y = element_text(colour='NA'), 
+                    axis.text.y  = element_text(colour="NA"), 
+                    axis.ticks.y = element_line(colour="NA"),
+                    axis.ticks =   element_line(colour="NA"))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of Natural Mortality (M) based on life-history theory
+
+```{r, r, fig.height=8,fig.width=8}
+ggdensity(r,x="dev",fill="Species",alpha=0.25)+
+  facet_wrap(Genus~.,scales="free_y")+
+  scale_x_continuous(limits=c(0,.5),breaks=c(0,0.25,0.5))+    
+  theme(legend.position = "none", 
+                    axis.title.y = element_text(colour='NA'), 
+                    axis.text.y  = element_text(colour="NA"), 
+                    axis.ticks.y = element_line(colour="NA"),
+                    axis.ticks =   element_line(colour="NA"))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of population growth $r$ based on life-history theory
+
+
+```{r, fmsy, fig.height=12,fig.width=10}
+ggdensity(rfpts,x="Fmsy",fill="Derivation")+
+  facet_wrap(Genus~.,scale="free_y")+
+  scale_x_continuous(limits=c(0,0.3),breaks=c(0.1, 0.2, 0.3))+
+  xlab(expression(F[MSY]))+
+    theme(legend.position = "none", 
+                    axis.title.y = element_text(colour='NA'), 
+                    axis.text.y  = element_text(colour="NA"), 
+                    axis.ticks.y = element_line(colour="NA"),
+                    axis.ticks =   element_line(colour="NA"))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of $F_{MSY}$ based on life-history theory
+
+
+
+```{r, box-m, fig.height=12,fig.width=10}
+h<-function(x) 1-exp(-x)
+
+fn<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.66))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+spp=inventory[!duplicated(inventory$spp),"spp"]
+
+dat=subset(rbind(cbind("Assumption"="M",transform(m,x=h(dev*0.41))),
+                 cbind("Assumption"="r",transform(r,x=h(dev*0.5)))),
+           paste(Genus,Species)%in%spp)
+ggplot(dat,aes(x,y=paste(Genus,Species)))+  
+   stat_summary(fun.data=fn, geom="boxplot")+  
+   labs(title = "Estimates of Fmsy (% per Year)")+
+   facet_grid(Genus~Assumption,scale="free",space="free")+
+   theme_bw(16)+ 
+   theme(legend.position="right",
+        #axis.title.x = element_text(colour='NA'), 
+        axis.ticks =   element_line(colour="NA"),
+        axis.text.x=element_text(angle=-45, hjust=0),
+        strip.text.y = element_blank())+
+   xlab("Natural mortality rate by species obtained from life history theory")+ylab("")+
+   scale_x_continuous(breaks=c(0,0.05,0.10,0.15),labels=percent)
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of $F_{MSY}$ based on life-history theory, boxes indicate the 33rd to 66th percentiles and the median, the lower whisker shows the 5th percentile.
+
+
+
+```{r, box-doubling, fig.height=12,fig.width=10}
+fn<-function(x) {
+  r=quantile(x, probs=c(0.05, 0.33, 0.5, 0.66, 0.95))
+  names(r)=c("ymin", "lower", "middle", "upper", "ymax")
+  r}
+
+#gt=subset(mrag,trait=="ln_G")
+
+lvl=priors[!duplicated(priors[,c("Genus","Species")]),c("Genus","Species","level")]
+r  =merge(r,lvl)
+
+ggplot(r,aes(x=log(2)/dev*2,y=paste(Genus,Species),fill=ac(level)))+  
+   stat_summary(fun.data=fn, geom="boxplot")+  
+   geom_point(aes(x=data,y=paste(Genus,Species)),data=gt,col="red")+
+   labs(title = "Population Doubling Time at Bmsy")+
+   facet_grid(Genus~.,scale="free",space="free")+
+   theme_bw(16)+ 
+   theme(legend.position="right",
+        #axis.title.x = element_text(colour='NA'), 
+        axis.ticks =   element_line(colour="NA"),
+        axis.text.x=element_text(angle=-45, hjust=0),
+        strip.text.y = element_blank())+
+   geom_hline(aes(yintercept=0))+
+   theme(axis.text.x=element_text(angle=-45, hjust=0))+
+   xlab("Population Doubling Time")+ylab("")+
+   scale_x_continuous(expand = c(0, 0), limits = c(0, NA))
+```
+
+**Figure `r iFig=iFig+1; iFig`** Estimates of $F_{MSY}$ based on life-history theory, boxes indicate the 33rd to 66th percentiles and the median, the lower whisker shows the 5th percentile.
+
+
+```{r, eval=FALSE}
+library(ggplot2)  
+library(RColorBrewer)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(lubridate)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(gridExtra)
+
+library(aquamapsdata)
+library(raquamaps)
+library(gfwr)
+
+library(leaflet)
+library(raster)
+library(aquamapsdata)
+
+library(aquamapsdata)
+#download_db(force = TRUE)
+default_db("sqlite")
+
+ss =read_sf(file.path("/home/laurie/pCloudDrive/shapeFiles/SS_Boundary/Sargasso_Sea_Geographical_Area_of_Collaboration.shp"))
+ssE=read.csv("/home/laurie/Dropbox/Sargasso FFEM Shared 2021/06 Deliverables/analysis/inputs/gfw/bq-results-20221012-060605-1665555242269.csv")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+#d2p <- nd %>% 
+#  group_by(lat, lon, gear) %>% 
+#  summarise(fishing_time = sum(fishing_time))
+
+ss =read_sf(file.path("/home/laurie/pCloudDrive/shapeFiles/SS_Boundary/Sargasso_Sea_Geographical_Area_of_Collaboration.shp"))
+ssE=read.csv("/home/laurie/Dropbox/Sargasso FFEM Shared 2021/06 Deliverables/analysis/inputs/gfw/bq-results-20221012-060605-1665555242269.csv")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+iccat=read_sf("/home/laurie/pCloudDrive/shapeFiles/ICCAT/ICCAT_draft_ecoregions_May 2022.shp")
+
+ggplot(subset(ssE,geartype=="trawlers")) +
+    geom_tile(aes(x=lon_bin_center, y=lat_bin_center, fill=log10(fishing_hours))) +
+    scale_fill_distiller(palette = "Blues", direction = 1) +
+    geom_sf(data = ss, fill = NA)+
+    #geom_s f(data = iccat, fill = NA, col="red")+
+    geom_sf(data = world) +
+  theme_bw()+
+  labs(x = "Longitude", y= "Latitude") +
+      coord_sf(expand = FALSE,
+             xlim=c(c(-40,-80)), ## set the plot longitude extents
+             ylim=c(20,40)) ## set the plot latitude extents
+
+key <- am_search_fuzzy("Illex illecebrosus")$key
+ras <- am_raster(key)
+
+# show the native habitat map
+am_map_leaflet(ras, title = "Shortfin Squid") %>%
+leaflet::fitBounds(lng1 =-75, lat1=10, lng2=-30, lat2=55) %>%
+  addPolygons(data=ss, weight = 2)
+```
+

@@ -1,0 +1,277 @@
+---
+title: "**Annex: 13**"
+subtitle: "CPUE for Centroscymnus coelolepis"
+author: "DELEGATION OF THE EUROPEAN UNION"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: SIOFA, deepwater sharks, hierchical framework
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: refs.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
+---
+
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path="cache/13/",
+               fig.path  ="../figs/13/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+```
+
+
+```{r libs}
+# Load libraries
+library(openxlsx)  # For reading Excel files 
+library(lubridate) # For handling date and time
+library(dplyr)     # For data manipulation
+library(ggplot2)   # For plotting
+library(DHARMa)    # For residuals diagnostics
+library(mgcv)      # For GAM models
+library(randomForest) # Breiman's Random Forest algorithm for classification and regression.
+```
+
+
+```{r, theme}
+theme_my<-function(size=16) {
+  theme_minimal() +
+    theme(text=element_text(size=size),
+          plot.title=element_text(face="bold", size=size+2),
+          axis.title=element_text(size=size-1),
+          legend.position="bottom",
+          legend.title=element_blank(),
+          panel.grid.major=element_line(color="gray80"),
+          panel.grid.minor=element_blank())}
+
+theme_set(theme_my())  
+```
+
+
+```{r data-preparation}
+# Load data
+load("../data/siofa.RData")
+load("../data/ieo.RData")
+
+## SIOFA data 
+# CPUE calculations and effort variable
+df1 <- siofa$cpue %>% 
+        mutate(CPUE = ifelse(gear %in% c("Bottom trawls (nei)","Midwater trawls (nei)","Single boat bottom otter trawls",
+                                     "Single boat midwater otter trawls","Trawls (nei)"),catchWeight/(TowDuration_minutes/60),
+                      ifelse(gear %in% c("Gillnets and entangling nets (nei)"),catchWeight/NetLength_m,
+                      ifelse(gear %in% c("Set longlines","Longlines (nei)","Vertical lines","Demersal longlines"),catchWeight/(Hooks_set/1000),NA))),
+           Effort = ifelse(gear %in% c("Bottom trawls (nei)","Midwater trawls (nei)","Single boat bottom otter trawls",
+                                     "Single boat midwater otter trawls","Trawls (nei)"),TowDuration_minutes,
+                    ifelse(gear %in% c("Gillnets and entangling nets (nei)"),NetLength_m,
+                    ifelse(gear %in% c("Set longlines","Longlines (nei)","Vertical lines","Demersal longlines"),Hooks_set,NA))))
+
+sort(unique(df1$speciesScientificName))
+# Remove NA catchweight
+df1 <- df1 %>% filter(!is.na(catchWeight))
+
+## IEO data
+df2 <- ieo$cpue %>% 
+        rename(gear = Arte, species3ACode = COD_SP, species = species, 
+               lat = y3, lon = x3, category = TIPO)
+
+df2$category <- ifelse(df2$category %in% "RETAINED", "Landings",
+                ifelse(df2$category %in% "DISCARDED","Discards","Released"))
+
+# Update species names
+df2$species[df2$species %in% c("Centrophorus squamosus","Centrophorus squamulosus","Centrophorus Squamulosus")] <- "Centrophorus squamosus"
+df2$species[df2$species %in% c("Centrophorus granulosus","Centrophrous granulosus")] <- "Centrophorus granulosus"
+df2$species[df2$species %in% c("Centroscymnus coelolepis","Centroscymnus Coelolepis")] <- "Centroscymnus coelolepis"
+df2$species[df2$species %in% c("Dalatias licha","Dalatias Licha")] <- "Dalatias licha"
+df2$species[df2$species %in% c("Deania calcea","Deania Calcea")] <- "Deania calcea"
+df2$species[df2$species %in% c("Etmopterus  spp","Etmopterus sp","Etmopterus spp","Etmopterus Spp")] <- "Etmopterus spp"
+
+# Remove years prior to 2018 (deemed unreliable)
+df2 <- df2 %>% filter(year >= 2018)
+
+# IEO data does not include any information on depth. We add this using a Random Forest algorithm for classification and regression
+set.seed(123) # Setting a seed for reproducibility
+rf=randomForest(depth~lat+lon, 
+                data=subset(df1,!(is.na(depth)|is.na(lat)|is.na(lon))))
+df2$depth=predict(rf, newdata=subset(df2,!(is.na(lat)|is.na(lon))))
+
+```
+
+
+```{r SIOFA CPUE models portugese dogfish}
+## SIOFA
+sub1 <- df1 %>% filter(species3ACode %in% "CYO", !is.na(CPUE), !year %in% 2003,
+                       !is.na(depth),!is.na(lat))
+
+# Lognormal GAM model
+sub1$logCatchWeight <- log(sub1$catchWeight)
+
+m1 <- gam(logCatchWeight ~ s(Effort) + s(year) + as.factor(gear) + s(depth), data = sub1, family = gaussian())
+summary(m1)
+
+resm1 <- simulateResiduals(fittedModel = m1, n = 250)
+plot(resm1) 
+
+#check residuals
+plot(m1)
+gam.check(m1)
+
+# Predict catches per year
+predictions <- predict(m1, newdata = sub1, type = "response", se.fit = TRUE)
+
+# Extract predicted values and standard errors
+predicted_values <- exp(predictions$fit)
+standard_errors <- exp(predictions$se.fit)
+
+# Calculate coefficients of variation (CV)
+cv <- standard_errors / predicted_values
+weights <- 1/(cv^2)
+
+# Combine predictions, standard errors, and CVs into a dataframe
+predicted_data <- data.frame(
+  year   = sub1$year,
+  gear   = sub1$gear,
+  Effort = sub1$Effort,
+  depth  = sub1$depth,
+  Predicted_Catch = predicted_values,
+  se = standard_errors,
+  CV = cv,
+  weights = weights
+)
+
+index <- predicted_data %>% 
+          mutate(sd = Predicted_Catch * sqrt(1/CV^2)) %>% 
+          group_by(year) %>%
+          summarise(mean_pred_catch = mean(Predicted_Catch),
+                    mean_CV = mean(sd/mean_pred_catch),
+                    low_ci = quantile(Predicted_Catch,0.025),
+                    up_ci = quantile(Predicted_Catch,0.975),
+                    weighted_mean = weighted.mean(weights,Predicted_Catch)) %>% 
+          ungroup() %>% 
+          mutate(norm_pred_catch = mean_pred_catch/mean(mean_pred_catch))
+
+# CPUE model biomass index plot
+ggplot(index, aes(x = year, y = mean_pred_catch)) +
+     geom_line() +
+     geom_ribbon(aes(ymin = low_ci, ymax = up_ci), fill = "lightgrey", alpha = 0.3) +
+     scale_x_continuous(limits = c(2002.5,2022.5), breaks = c(seq(2004,2022,2)), expand = c(0,0)) +
+     labs(x = "", y = "Biomass (kg)")
+
+# CPUE model relative biomass index plot
+ggplot(index, aes(x = year, y = norm_pred_catch)) +
+     geom_line() +
+     scale_x_continuous(limits = c(2002.5,2022.5), breaks = c(seq(2004,2022,2)), expand = c(0,0)) +
+     labs(x = "", y = "Relative biomass")
+
+```
+
+
+```{r IEO CPUE models portugese dogfish}
+## IEO
+df2$logCatchWeight <- log(df2$Kilos)
+df2$Effort <- df2$nhooks
+
+sub2 <- df2 %>% filter(species3ACode %in% "CYO", !category %in% "Released",
+                       Area %in% 2)
+
+# We don't include gear in the model as this dataset only has longlines
+m3 <- gam(logCatchWeight ~ s(Effort) + s(year, k = 6) + s(depth), data = sub2, family = gaussian())
+summary(m3)
+
+resm3 <- simulateResiduals(fittedModel = m3, n = 250)
+plot(resm3) 
+
+#check residuals
+plot(m3)
+gam.check(m3)
+
+# Predict catches per year
+predictions <- predict(m3, newdata = sub2, type = "response", se.fit = TRUE)
+
+# Extract predicted values and standard errors
+predicted_values <- exp(predictions$fit)
+standard_errors <- exp(predictions$se.fit)
+
+# Calculate coefficients of variation (CV)
+cv <- standard_errors / predicted_values
+weights <- 1/(cv^2)
+
+# Combine predictions, standard errors, and CVs into a dataframe
+predicted_data <- data.frame(
+  year   = sub2$year,
+  gear   = sub2$gear,
+  Effort = sub2$Effort,
+  depth  = sub2$depth,
+  Predicted_Catch = predicted_values,
+  se = standard_errors,
+  CV = cv,
+  weights = weights
+)
+
+index2 <- predicted_data %>% 
+           mutate(sd = Predicted_Catch * sqrt(1/CV^2)) %>% 
+           group_by(year) %>%
+           summarise(mean_pred_catch = mean(Predicted_Catch),
+                     mean_CV = mean(sd/mean_pred_catch),
+                     low_ci = quantile(Predicted_Catch,0.025),
+                     up_ci = quantile(Predicted_Catch,0.975),
+                     weighted_mean = weighted.mean(weights,Predicted_Catch)) %>% 
+           ungroup() %>% 
+           mutate(norm_pred_catch = mean_pred_catch/mean(mean_pred_catch))
+
+# CPUE model biomass index plot
+ggplot(index2, aes(x = year, y = mean_pred_catch)) +
+     geom_line() +
+     geom_ribbon(aes(ymin = low_ci, ymax = up_ci), fill = "lightgrey", alpha = 0.3) +
+     scale_x_continuous(limits = c(2017.7,2023.2), breaks = c(seq(2018,2023,1)), expand = c(0,0)) +
+     scale_y_continuous(limits = c(0,12500), breaks = c(seq(0,12000,2000)),expand=c(0.001,0.001)) +
+     labs(x = "", y = "Biomass (kg)")
+
+# CPUE model relative biomass index plot
+ggplot(index2, aes(x = year, y = norm_pred_catch)) +
+     geom_line() +
+     scale_x_continuous(limits = c(2017.7,2023.2), breaks = c(seq(2018,2023,1)), expand = c(0,0)) +
+     scale_y_continuous(limits = c(0,1.55), breaks = c(seq(0,1.55,0.3)), expand = c(0.001,0.001)) +
+     labs(x = "", y = "Relative Biomass") 
+
+```
+
+```{r Combine CPUE models portugese dogfish}
+cyo <- index %>% 
+        select(c(year,mean_pred_catch,mean_CV,norm_pred_catch)) %>% 
+        rename(mean_cpue_siofa = mean_pred_catch,
+               mean_cv_siofa = mean_CV,
+               norm_cpue_siofa = norm_pred_catch) %>% 
+        full_join(index2 %>% 
+                   select(c(year,mean_pred_catch,mean_CV,norm_pred_catch)) %>%
+                   rename(mean_cpue_ieo = mean_pred_catch,
+                          mean_cv_ieo = mean_CV,
+                          norm_cpue_ieo = norm_pred_catch))
+                                  
+cyo %>% 
+  select(c(year,norm_cpue_siofa,norm_cpue_ieo)) %>% 
+  tidyr::gather(key,value,norm_cpue_siofa,norm_cpue_ieo) %>% 
+  mutate(key = ifelse(key %in% "norm_cpue_siofa", "SIOFA","IEO")) %>% 
+  ggplot(., aes(x = year, y = value, color = key)) + 
+  geom_line() +
+  labs(x = "", y = "Relative biomass") +
+  scale_x_continuous(limits = c(2003.5,2023.5),breaks=c(seq(2005,2023,3)), expand=c(0,0))
+
+```

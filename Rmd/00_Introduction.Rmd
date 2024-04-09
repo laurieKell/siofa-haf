@@ -1,27 +1,25 @@
 ---
-subtitle: "**SIOFA**"
-title: "00:"
-author: "L Kell"
+title: "**Annex: 00**"
+subtitle: "Set Up"
+author: "DELEGATION OF THE EUROPEAN UNION"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 
-tags: FLR FLCore introduction
+tags: SIOFA, deepwater sharks, hierchical framework
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
-#knit: (function(inputFile, encoding) {
-#  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
 bibliography: refs.bib
 editor_options: 
   markdown: 
     wrap: 72
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir="html")})
 ---
-
 
 [Jump to More Information](#more)
 
 [Jump to References](#references)
-
 
 ```{r, knitr, echo=FALSE, warning=FALSE, cache=FALSE}
 library(knitr)
@@ -30,13 +28,13 @@ opts_chunk$set(comment   =NA,
                warning   =FALSE, 
                message   =FALSE, 
                error     =FALSE, 
-               echo      =TRUE, 
+               echo      =!TRUE, 
                eval      =TRUE,
                
                cache     =TRUE, 
                cache.path="cache/00/",
                
-               fig.path  ="../tex/figs/00-",
+               fig.path  ="../tex/figs/00/",
                fig.width =8,
                fig.height=6,
                dev       ="png")
@@ -47,78 +45,93 @@ iFig=0
 iTab=0
 ```
 
-## Introduction {#intro}
-
-
-
-## Libraries
+## Libraries {#libs}
 
 A variety of R packages are required for data manipulation and plotting,
 obtaining life history parameters, and modelling.
 
-#### Data Manipulation 
+### Data Manipulation
 
-```{r, pkgs-data}
-library(plyr)
-library(dplyr)
-library(reshape)
+```{r}
+library(plyr)       # Set of tools for splitting, applying, and combining data.
+library(dplyr)      # Grammar of data manipulation, a set of verbs that solves the most common data manipulation challenges.
+library(reshape)    # Reshaping and aggregating data
 ```
 
-#### Plotting
+### Plotting
 
-```{r, pkgs-ggplot}
-library(ggplot2)
-library(ggpubr)
-library(ggcorrplot)
-library(GGally)
+```{r}
+library(ggplot2)    # Grammar of Graphics.
+library(ggpubr)     # Wrapper for creating publication-ready plots using ggplot2.
+library(ggcorrplot) # Visualisation of correlation matrices using 'ggplot2'.
+library(GGally)     # Etension to 'ggplot2', providing additional plotting
 
-library(scales)
+library(scales)     # Scaling for 'ggplot2' normalisation and mapping.
 
-library(R.devices)
+library(R.devices)  # Functions for handling graphical output devices.
 ```
 
-#### FLR
+### FLR (Fisheries Library in R)
 
-```{r, pkgs-flr}
-library(FLCore)
-library(ggplotFL)
-library(FLBRP)
-library(FLasher)
-library(FLife)
-library(mydas)
+```{r}
+library(FLCore)     # Core FLR package 
+library(ggplotFL)   # Extends 'ggplot2' for common fisheries plots using FLR objects.
+library(FLBRP)      # Rererence points.
+library(FLasher)    # Short-term forecasts and MSE.
+library(FLife)      # Life history analysis
+library(mydas)      # Data-limited management strategy evaluation.
+```
+
+### Life Histories
+
+```{r}
+library(rfishbase)  # Interface to 'FishBase'.
+library(FishLife)   # Life history parameters for fish species, built on 'FishBase'.
+library(SPMpriors)  # Generates prior distributions for stock productivity models.
+```
+
+### Utilities
+
+```{r}
+library(openxlsx)     # Reading, writing, and editing Excel files
+
+library(lubridate)    # Makes it easier to work with dates and times.
+
+library(statcomp)     # Tools for statistical complexity and entropy based analysis of time series data.
+
+library(randomForest) # Breiman's Random Forest algorithm for classification and regression.
+
+library(mgcv)         # GAMs
+
+library(ggstats)      # Weighted quantiles
+
+library(kableExtra)   # Markdown and Latex tables
+```
+
+```{r}
+library(fishmethods) #powertrends
 ```
 
 
-There are also extensive tutorials. 
-
-#### Life Histories
-
-```{r, pkgs-fb}
-library(rfishbase)
-library(FishLife)
-library(SPMpriors)
+```{r, source}
+source("../source/fl_mcupd_fn.R")
+source("../source/fnDat.R") 
 ```
 
-#### Utilities
+### Installation
 
-```{r, pkgs-fb}
-library(statcomp)
-```
-
-### Installation 
-
-First the required Libraries (i.e. packages) need to be installed. This can be be done
-from cran, e.g.
+First the required Libraries (i.e. packages) need to be installed. This
+can be be done from cran, e.g.
 
 Set mirror if needed `chooseCRANmirror()`
 
 ```{r, install-util, eval=FALSE}
+install.packages("randomForest")
+
 install.packages(c("plyr", 
                    "dplyr", 
                    "reshape"))
-```
 
-```{r, install-gg, eval=FALSE}
 install.packages(c("ggplot2",
                    "ggpubr",
                    "ggcorrplot",
@@ -129,12 +142,8 @@ install.packages(c("ggplot2",
 
 Or from <https://flr-project.org/>
 
-To install the latest released versions of the FLR packages, and their dependencies
-enter
-
-```{r, eval=FALSE}
-source("http://flr-project.org/R/instFLR.R")
-```
+To install the latest released versions of the FLR packages, and their
+dependencies enter
 
 then select 'FLCore', 'ggplotFL', 'FLBRP', 'FLasher', 'FLife', 'mydas'
 
@@ -156,20 +165,253 @@ remotes:::install_github("flr/FLife")
 remotes:::install_github("flr/mydas")
 ```
 
-
 #### FishBase
 
 There are compatability problems with `FishBase`, so install an earlier
-version. 
+version.
 
-These have been fixed now. see <https://james-thorson-noaa.github.io/FishLife/>
+These have been fixed now. see
+<https://james-thorson-noaa.github.io/FishLife/>
 
 ```{r, eval=FALSE}
 #remotes::install_github("ropensci/rfishbase",ref="d150f2e0f5")
+install.packages("../rfishbase_3.1.10.tar.gz", repos=NULL, type="source")
+
 remotes::install_github("james-thorson/FishLife")
 remotes::install_github("Henning-Winker/SPMpriors")
 ```
 
+[Back to Top](#top)
+
+## Data
+
+### SIOFA
+
+```{r, data-siofa, echo=FALSE}
+# Load data from Excel file into data frames
+cpue=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+names(cpue)[c(3,6)]=tolower(names(cpue)[c(3,6)])
+names(cpue)[c(7:8)]=c("lat","lon")
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$time       =adjust_time_format(cpue$time)
+cpue$year       =year(cpue$Date)
+names(cpue)[9]  ="depth"
+
+biol=read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+                 startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+
+biol=transform(biol, gender=factor(Sex,labels=c("Female","Male"),levels=c("F","M")))
+biol=merge(biol,cpue[,c("OPE_ID","gear","depth","Date","year","lat","lon")],by="OPE_ID")
+names(biol)[11]="len"
+
+cSmry=catchSmry(cpue)
+
+names(biol)[ 3]="species"
+names(cpue)[16]="species"
+names(cSmry)[16]="species"
+
+siofa=list("biol"=biol,"cpue"=cpue,"cSmry"=cSmry)
+
+save(siofa, file="../data/siofa.RData")
+```
+
+### IEO
+
+```{r, data-ieo, echo=FALSE}
+load("../data/inputs/Sharks_logbooks.Rdata")
+cpue=as.data.frame(cpue)
+names(cpue)[13]="species"
+
+load("../data/inputs/Sharks_biological.Rdata")
+biol=as.data.frame(biol)
+names(biol)[c(3,5,6,7,12)]=c("len","mass","sex","mat","species")
+
+biol=merge(biol,cpue[,c("cod_set","month","year","Area","x3","x4","y3","y4")],by=c("cod_set"))
+names(biol)=tolower(names(biol))
+biol=transform(biol,lat=(y3+y4)/2,lon=(x3+x4)/2)
+
+mat=setNames(seq(4),c("A","B","C","D"))
+biol$mat[biol$mat%in%names(mat)]=mat[biol$mat[biol$mat%in%names(mat)]]
+biol$mat=substr(biol$mat,nchar(biol$mat),1)
+
+biol=transform(biol,spp=factor(sppAbbrv(species)))
+biol=transform(biol,mature=ifelse(as.numeric(mat)>=3,1,0))
+
+biol$sex[is.na(biol$sex)]="N"
+biol=transform(biol, gender=factor(sex,labels=c("Female","Male","Unsexed"),levels=c("F","M","N")))
+
+set.seed(123) # Setting a seed for reproducibility
+rf=randomForest(depth~lat+lon, 
+                data=subset(siofa$cpue,!(is.na(depth)|is.na(lat)|is.na(lon))))
+biol$depth=predict(rf, newdata=subset(biol,!(is.na(lat)|is.na(lon))))
+
+# Check and correct species scientific names for the cpue dataset
+biol$species[biol$species == "Centrophrous granulosus"] <- "Centrophorus granulosus"
+biol$species[biol$species == "Centrophorus squamulosus"] <- "Centrophorus squamosus"
+biol$species[biol$species == "Centrophorus Squamulosus"] <- "Centrophorus squamosus"
+biol$species[biol$species == "Centroscymnus Coelolepis"] <- "Centroscymnus coelolepis"
+biol$species[biol$species == "Dalatias Licha"] <- "Dalatias licha"
+biol$species[biol$species == "Deania Calcea"] <- "Deania calcea"
+biol$species[biol$species == "Etmopterus  spp"] <- "Etmopterus spp"
+biol$species[biol$species == "Etmopterus sp"] <- "Etmopterus spp"
+biol$species[biol$species == "Etmopterus Spp"] <- "Etmopterus spp"
+biol$species[biol$species == "Etmopterus Spp"] <- "Etmopterus spp"
+
+# Check and correct species scientific names for the cpue dataset
+
+cpue$species[cpue$species == "Centrophrous granulosus"] <- "Centrophorus granulosus"
+cpue$species[cpue$species == "Centrophorus squamulosus"] <- "Centrophorus squamosus"
+cpue$species[cpue$species == "Centrophorus Squamulosus"] <- "Centrophorus squamosus"
+cpue$species[cpue$species == "Centroscymnus Coelolepis"] <- "Centroscymnus coelolepis"
+cpue$species[cpue$species == "Dalatias Licha"] <- "Dalatias licha"
+cpue$species[cpue$species == "Deania Calcea"] <- "Deania calcea"
+cpue$species[cpue$species == "Etmopterus  spp"] <- "Etmopterus spp"
+cpue$species[cpue$species == "Etmopterus sp"] <- "Etmopterus spp"
+cpue$species[cpue$species == "Etmopterus Spp"] <- "Etmopterus spp"
+cpue$species[cpue$species == "Etmopterus Spp"] <- "Etmopterus spp"
+
+ieo=list("biol"=biol,"cpue"=cpue)
+
+save(ieo,  file="../data/ieo.RData") 
+```
+
+## Species List
+
+```{r, spp, echo=FALSE}
+asfis=read.csv("../data/inputs/ASFIS_sp_2021.txt")
+
+sppMrag=c(
+"Portuguese dogfish"  ,"Centroscymnus coelolepis",	
+"Kitefin shark"       ,"Dalatias licha",	
+"Birdbeak dogfish"    ,"Deania calcea",												
+"Gulper shark"        ,"Centrophorus granulosus",
+"Gulper shark"        ,"Centrophorus atromarginatus",	
+"Gulper shark"        ,"Centrophorus squamosus",	
+"Gulper shark"        ,"Centrophorus harrissoni",	
+"Gulper shark"        ,"Centrophorus isodon",	
+"Gulper shark"        ,"Centrophorus lesliei",	
+"Gulper shark"        ,"Centrophorus lusitanicus",	
+"Gulper shark"        ,"Centrophorus moluccensis",	
+"Gulper shark"        ,"Centrophorus seychellorum",	
+"Gulper shark"        ,"Centrophorus uyato",	
+"Gulper shark"        ,"Centrophorus westraliensis",	
+"Gulper shark"        ,"Centrophorus zeehaani",	
+"Lantern shark"       ,"Etmopterus alphus",	
+"Lantern shark"       ,"Etmopterus bigelowi",	
+"Lantern shark"       ,"Etmopterus brosei",	
+"Lantern shark"       ,"Etmopterus compagnoi",	
+"Lantern shark"       ,"Etmopterus evansi",	
+"Lantern shark"       ,"Etmopterus fusus",	
+"Lantern shark"       ,"Etmopterus gracilispinis",	
+"Lantern shark"       ,"Etmopterus granulosus",	
+"Lantern shark"       ,"Etmopterus pusillus",	
+"Lantern shark"       ,"Etmopterus sentosus")
+sppMrag=data.frame(name=sppMrag[seq(1,length(sppMrag),2)],spp=sppMrag[seq(2,length(sppMrag),2)])
+
+sppSiofa=c("Centroscymnus coelolepis","Pailona commun","Portugese dogfish","CYO",
+           "Deania calcea","Squale savate","Birdbeak dogfish","DCA",
+           "Centrophorus granulosus","Requin chagrin ","ulper shark","GUP",
+           "Dalatias licha","Squale liche","Kitefin shark","SCK",
+           "Bythaelurus bachi","Requin chat de Bach","Bach's catshark","BZO",
+           "Chimaera buccanigella","Chimere bouche-foncee","Dark-mouth chimaera","ZZC",
+           "Chimaera didierae","Chimere de Didier","The Falkor chimaera","ZZD",
+           "Chimaera willwatchi","Chimere du marin","Seafarer's ghostshark","ZZE",
+           "Centroscymnus crepidater","Pailona à long nez","Longnose Velvet Dogfish","CYP",
+           "Centroscymnus plunketi","Pailona austral","Plunket shark","CYU",
+           "Zameus squamulosus","Squale-grogneur a queue echancree","Velvet dogfish","SSQ",
+           "Etmopterus alphus","Requin lanterne à joues blanches","Whitecheek lanternshark","EZU",
+           "Apristurus indicus","Holbiche artouca","Smallbelly catshark","APD",
+           "Harriotta raleighana","Chimere à nez rigide","Bentnose rabbitfish","HCR",
+           "Bythaelurus tenuicephalus","Requin chat à tête étroite","Narrowhead catshark","BZL",
+           "Chlamydoselachus anguineus","Requin lézard","Frilled shark","HXC",
+           "Hexanchus nakamurai","Requin griset","Bigeyed six-gill shark","HXN",
+           "Etmopterus pusillus","Sagre nain","Smooth lanternshark","ETP",
+           "Somniosus antarcticus","Requin dormeur antarctique","Southern sleeper `shark","SON",
+           "Mitsukurina owstoni","Requin lutin","Goblin shark","LMO")
+sppSiofa=as.data.frame(t(array(sppSiofa,c(4,20))))
+sppSiofa=cbind(ldply(strsplit(sppSiofa[,1]," ")),sppSiofa)
+names(sppSiofa)=c("Genus","Species","spp","french","name","FAO")
+
+inventory=rbind(
+      data.frame(species=unique(ieo$biol$species),  Source="IEO",  What="Biol"),
+      data.frame(species=unique(ieo$cpue$species),  Source="IEO",  What="CPUE"),
+      data.frame(species=unique(siofa$biol$species),Source="SIOFA",What="Biol"),
+      data.frame(species=unique(siofa$cpue$species),Source="SIOFA",What="CPUE"))
+old=inventory[,1]
+new=inventory[,1]
+
+new=tolower(new)
+new=gsub("Spp","spp",                  new)
+new=gsub("spp","sp",                   new)
+new=gsub("sp", "spp",                  new)
+new=gsub("  "," ",                     new)
+new=gsub("  "," ",                     new)
+new=gsub("calceus","calcea",           new)
+new=gsub("squamosus","squamulosus",    new)
+new=gsub("Centrophrous","Centrophorus",new)
+
+substr(new,1,1)=toupper(substr(new,1,1))
+
+inventory[,1]    =new
+inventory        =inventory[!duplicated(inventory),]
+inventory$Genus  =laply(strsplit(inventory$species, " "), function(x) x[[1]])
+inventory$Species=laply(strsplit(inventory$species, " "), function(x) x[[2]])
+names(inventory)[1]="spp"
+
+spp=sort(unique(c(inventory$spp,sppSiofa$spp,sppMrag$spp)))
+spp=cbind(spp    =spp,
+          Genus  =laply(strsplit(spp, " "), function(x) x[[1]]),
+          Species=laply(strsplit(spp, " "), function(x) x[[2]]))
+spp=spp[order(spp[,"spp"]),]
+
+sppFB    =transform(rfishbase::fishbase,spp=paste(Genus,Species))
+
+spp      =cbind(spp,       fishbase=spp[,      "spp"]%in%sppFB$spp)
+inventory=cbind(inventory, fishbase=inventory[,"spp"]%in%sppFB$spp)
+
+names(asfis)[4]="spp"
+asfis=asfis[asfis[,4]%in%spp[,1],]
+
+fb   =popgrowth(spp[,"spp"])[,c("Species","K","Loo","to","LmMale","LmFemale","Lm")]
+names(fb)=c("species","k","linf","t0","l50m","l50f","l50")
+depth=species(sppSiofa[,3])[c("Species","DepthRangeDeep")]
+names(depth)=c("species","range")
+fb   =merge(depth,fb)
+
+save(spp,inventory,sppSiofa,sppMrag,asfis,fb,file="../data/spp.RData")
+```
+
+```{r, priors, eval=FALSE}
+priors=mdply(spp[,c("Genus","Species")], function(Genus,Species) { 
+  
+  rtn=try(Plot_taxa(Search_species(Genus=Genus,Species=Species)$match_taxonomy,mfrow=c(3,2),plot=FALSE))
+  
+  if ("try-error"%in%is(rtn)) return(NULL)
+  data.frame(level=length(rtn),trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
+prior2=mdply(spp[,c("Genus","Species")], function(Genus,Species) { 
+  
+  rtn=try(Plot_taxa(Search_species(Genus=Genus)$match_taxonomy,mfrow=c(3,2),plot=FALSE))
+  
+  if ("try-error"%in%is(rtn)) return(NULL)
+  data.frame(level=length(rtn),trait=names(rtn[[1]][[2]]),data=rtn[[1]][[2]],var=diag(rtn[[1]][[1]]))})
+priors=rbind(cbind(What="Species",priors),cbind(What="Genus",prior2))
+priors=priors[!duplicated(priors[,c("Genus","Species","trait")]),]
+
+traits=mdply(spp[,c("Genus","Species")], function(Genus,Species) {
+  
+  rtn=try(fl_mcupd(Genus=Genus, Species=Species)$traits)
+  
+  if ("try-error"%in%is(rtn)) return(NULL)
+  rtn})
+
+for (i in list.files(pattern = "\\.png$")){
+  file.copy(  i,file.path("../figs/png",i))
+  file.remove(i)}
+
+save(priors,traits,file="../data/lh.RData")
+```
 
 [Back to Top](#top)
 
