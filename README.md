@@ -6,23 +6,60 @@ editor_options:
 
 # sofia-haf
 
-Hierchical Assessment Framework
+## Hierchical Assessment Framework
 
-[Annex 1: Summary of SIOFA Data](https://rpubs.com/laurie/1156636)
+### Setup up
 
-[Annex 2: Summary of IEO Data](https://rpubs.com/laurie/1156637)
+-   [Installing libraries, getting species list and tidying up
+    data](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/00_Introduction.Rmd)
+    ([word](),[pdf](),[html]())
 
-[Annex 3: Life History Parameters for Centroscymnus
-coelolepis](https://rpubs.com/laurie/1156638)
+### Data Preparation
 
-[Annex 4: Length Based Indicators for Centroscymnus
-coelolepis](https://rpubs.com/laurie/1156640)
+-   [Summaries of IEO
+    data](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/01_IEO.Rmd)
+    ([word](),[pdf](),[html]())
 
-[Annex 5: Catch and EffortAnalysis for Centroscymnus
-coelolepis](https://rpubs.com/laurie/1156641)
+-   [Summaries of SIOFA
+    data](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/01_Siofa.Rmd)
+    ([word](),[pdf](),[html]())
 
-[Annex 6: Priors derived from
-FishBase](https://rpubs.com/laurie/1156642)
+-   [Life History
+    Data](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/02_lh.Rmd)
+    ([word](),[pdf](),[html]())
 
-[Annex 7: Maturity Ogive Disgnostics for Centroscymnus
-coelolepis](https://rpubs.com/laurie/1156643)
+-   [Life CPUE
+    Analysis](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/03_CPUE.Rmd)
+    ([word](),[pdf](),[html]())
+
+-   [Length based
+    Analysis](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/04_lbi.Rmd)
+    ([word](),[pdf](),[html]())
+
+### Portuguese Dogfish
+
+-   [Life history based
+    priors](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/11_pDogLh.Rmd)
+    ([word](),[pdf](),[html]())
+
+-   [Maturity
+    Analysis](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/12_PDogMat.Rmd)
+    ([word](),[pdf](),[html]())
+
+-   [CPUE
+    Analysis](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/13_pDogCPUE.Rmd)
+    ([word](),[pdf](),[html]())
+
+-   [Length based
+    Analysis](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/14_pDogLen.Rmd)
+    ([word](),[pdf](),[html]())
+
+### Assessment Framework
+
+-   [Assessment](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/21_conState.Rmd)
+    ([word](),[pdf](),[html]())
+
+### Presentation
+
+-   [Presentation](https://github.com/laurieKell/siofa-haf/blob/main/Rmd/Presentation.Rmd),
+    ([word](),[pdf](),[html]())
