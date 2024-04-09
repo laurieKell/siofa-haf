@@ -1,26 +1,33 @@
 Introduction
 
--   Setup up
+# Setup up
 
+ 00_Introduction.Rmd  
+ 
 # Data Preparation
+ 
+ 01_IEO.Rmd     
+ 01_Siofa.Rmd   
+ 02_lh.Rmd     
+ 03_CPUE.Rmd   
+ 04_lbi.Rmd      
+ 
 
-01   Clean up and summarise
-02   Life History Parameters
-03   Catch and Effort Data
-04   Length Data
+# Portuguese Dogfish
+ 
+ 11_pDogLh.Rmd   
+ 12_PDogMat.Rmd    
+ 13_pDogCPUE.Rmd   
+ 14_pDogLen.Rmd    
+ 
+# Assessment Framework
 
-# Prtuguese Dogfish
+ 21_conState.Rmd 
+ 
+# To do 
+ 31_Presentation.Rmd  
+ 
 
--   Level 1: 
-       - Life history
-       - Matutity-at-age
--   Level 2: Indicators
-       - LBIs
--   Level 3: Dynamic 
-        - CPUE
-
-
-# Framework
 
 
   
