@@ -125,6 +125,8 @@ save(nobs,len,fln,ind,file="../data/siofaLen.RData")
 ```{r, table-ieo}
 kab1=kable(nobsAll,col.names=c("Species","Number of Observations"))
 kab1
+
+save(kab1,file="../data/results/kab1.RData")
 ```
 
 ```{r, plot-ieo, fig.height=8,fig.width=10}
@@ -161,6 +163,7 @@ dat=ind[,c("species","gender","lc","l25","lmaxy","lbar","lmean","lmax5","l95","p
 names(dat)[c(1:2)]=c("Species","Gender")
 kab2=kable(dat,digits=2)
 kab2
+save(kab2,file="../data/results/kab2.RData")
 ```
 
 
@@ -258,6 +261,8 @@ pDogMn=ggplot(aes(y=len,x=ac(year)), data=dat)+
    scale_fill_manual(values=c("red","blue","purple"))+
    xlab("Year")+ylab("Length (cm)")
 pDogMn
+
+save(pDogMn,file="../data/results/pDogMn.RData")
 ```
 
 ```{r, len-ieo, fig.width=8, fig.height=6}
@@ -294,6 +299,7 @@ pDogLFD=ggplot(subset(len,species=="Centrophorus granulosus"&year>=2019), aes(le
   #geom_vline(aes(xintercept=exp(subset(priors,Species=="coelolepis"&trait=="Lm")$data)))
   #geom_vline(aes(xintercept=lmax5,col=gender),data=subset(ind,   species=="Centroscymnus coelolepis"))
 
+save(pDogLFD,file="../data/results/pDogLFD.RData")
 
 pDogLFD 
 ```
@@ -305,13 +311,18 @@ pDogLFD
 ### SIOFA
 
 
-```{r,len-siofa, fig.width=8, fig.height=4, eval=FALSE, eval=FALSE}
+```{r,len-siofa, fig.width=8, fig.height=4, eval=!FALSE}
 load("../data/siofa.RData")
 
 sbiol=merge(siofa$biol[,c(1,11:12,16)],siofa$cpue[,c("OPE_ID","year")])[,-1]
 names(sbiol)=c("len","mass","unit","year")
 sbiol=subset(sbiol,!is.na(len)&unit%in%c("Male","Female"))
 nobs =ddply(sbiol,.(unit,year), with, data.frame(n=length(len)))
+
+sflen=ddply(sbiol,.(len,year,unit), 
+           with,data.frame(data=length(mass)))
+sflen=as.FLQuant(sflen)
+sflen[is.na(sflen)]=0
 
 lfd=ggplot(sbiol, aes(len)) +
   geom_histogram(bins=50, fill="skyblue", color="blue") +
@@ -329,6 +340,7 @@ lfd=ggplot(sbiol, aes(len)) +
   geom_vline(aes(xintercept=data),data=as.data.frame(lmean(sflen)),col="black")+
   geom_vline(aes(xintercept=lfm(45,150)),col="green")
 lfd
+save(lfd,file="C:/active/siofa-haf/data/lfd.RData")
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Length distributions by gender for SIOFA data.

@@ -87,11 +87,15 @@ source("../source/fl_mcupd_fn.R")
 ```{r}
 # Load FAO taxa data
 load("../data/inputs/fao_taxa.RData")
+```
 
+```{r}
 # Read ASFIS species information
 asfis = read.csv("../data/inputs/ASFIS_sp_2021.txt")
 names(asfis)[4] = "scientificName"
+```
 
+```{r}
 # Transform fishbase data for compatibility
 spp = transform(rfishbase::fishbase, scientificName = paste(Genus, Species))
 
@@ -124,7 +128,9 @@ sink()
 lh=merge(priors, traits, by=c("Genus", "Species", "trait"), all=T)
 
 names(lh)=c("Genus","Species","trait","Value","Variance","Hat","CV","mu.upd","CV.upd","lcl.upd","ucl.upd","upper.quant")
+```
 
+```{r}
 save(lh,file="../data/cCoelolepis.RData")
 ```
 
@@ -201,8 +207,14 @@ save(ieo,siofa,file="../data/pDog.RData")
 ```{r, mat}
 pDogMorph=read.xlsx("../data/inputs/maturity_data.xlsx", "morphometric", 
                  startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+```
+
+```{r}
 pDogGonad=read.xlsx("../data/inputs/maturity_data.xlsx", "gonad", 
                  startRow=1, detectDates=TRUE, skipEmptyRows=TRUE)
+```
+
+```{r}
 mat=rbind.fill(cbind(Type="Morph",pDogMorph),
                cbind(Type="Gonad",pDogGonad))
 mat$sex =factor(mat$sex,labels=c("Female","Male"),levels=c("F","M"))

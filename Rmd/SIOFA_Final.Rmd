@@ -1,0 +1,1120 @@
+---
+title: "IMPROVING SCIENTIFIC ADVICE ON DEEP-WATER SHARKS IN THE SIOFA Area"
+subtitle: "Specific Objective 2"
+author: ""
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+#  powerpoint_presentation:
+#    reference_doc: SC06_Sharks_Task5.potx
+#
+  slidy_presentation
+#
+#  beamer_presentation:
+#    theme: "Madrid"
+#    toc: true
+#    highlight: tango
+#
+#  html_document:
+#    toc: true
+#    toc_float: true
+#    collapsed: true
+#    smooth_scroll: false
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               cache     =TRUE,
+               cache.path= "cache/ppt/",
+               fig.path  ="../figs/ppt/",
+               fig.width =12,
+               fig.height=8,
+               dev       ="png")
+iFig=0
+iTab=0
+```
+
+```{r setup, include=FALSE}
+library(openxlsx)  # For reading Excel files
+library(lubridate) # For handling date and time
+library(plyr)      # For data manipulation
+library(dplyr)     # For data manipulation
+library(reshape)   # For data manipulation
+library(ggplot2)   # For plotting
+library(ggpubr)    # For plotting
+library(mapdata)   # For map-based data
+library(viridis)   # For color scales, better for visibility
+```
+
+
+```{r, data}
+# Data Preparation
+# Load data from an Excel file into data frames
+cpue = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_catch", 
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+biol = read.xlsx("../data/inputs/SIOFA_DWS-2023-01-Data.xlsx", "dws_data_bio_sampling",
+                 startRow = 1, detectDates = TRUE, skipEmptyRows = TRUE)
+
+# Adjusting time format
+adjust_time_format<-function(time)
+  format(as.POSIXct(time * 86400, origin = "1970-01-01", tz = "UTC"), "%H:%M:%S")
+
+cpue$SettingTime=adjust_time_format(cpue$SettingTime)
+cpue$HaulingTime=adjust_time_format(cpue$HaulingTime)
+cpue$Time       =adjust_time_format(cpue$Time)
+cpue$Year       =year(cpue$Date)
+
+# Data Visualization and Analysis Functions
+
+catchSmry<-function(data) {
+  # Filter out NAs
+  filtered=filter(data, !is.na(Latitude), !is.na(Longitude), !is.na(Year))
+  # Group data
+  rtn=group_by(filtered, speciesScientificName, Gear, Year, Latitude, Longitude)
+  
+  rtn$Species=gsub(" ","\n",rtn$speciesScientificName)
+  
+  rtn}
+
+cSmry=catchSmry(cpue)
+```
+
+```{r, theme}
+theme_my<-function(size=20) {
+  theme_minimal() +
+    theme(text = element_text(size=size),
+          plot.title = element_text(face = "bold", size = 14),
+          axis.title = element_text(size = 12),
+          legend.position = "bottom",
+          legend.title = element_blank(),
+          panel.grid.major = element_line(color = "gray80"),
+          panel.grid.minor = element_blank())}
+```
+
+
+# Specific Objective 2:  
+
+**Focuses** on the biological information and assessment methods required to estimate exploitation levels and conservation status
+
+::: indent
+
+**Task 5**: Identification and Categorisation
+
+::: indent
+  - Identify and categorise shark stocks in the SIOFA area that are data-limited or assessment-limited
+  - Builds on Tasks 1, 2, 3 & 4
+:::
+
+**Task 6**: Description and Evaluation of Methods
+
+::: indent
+  - Develop and evaluate methodological approaches for assessing data-limited shark stocks
+  - From Ecological Risk Assessment to Stock Assessment
+:::
+
+**Task 7**: Conservation Status Assessment
+
+::: indent
+  - Assess the conservation status of the main deep-water sharks in the SIOFA area
+:::
+  
+::: 
+
+
+
+# Catches of Deepwater Sharks
+
+### Ecological Risk Assessment (ERA)
+
+Identified risks from gillnets, resulting in switch to longlines key change in recent years
+
+::: indent
+  - **Gillnets**: Historically, a larger proportion of sharks were caught using gillnets 
+  - **Longlines**: Now the primary method for catching deepwater sharks
+:::
+
+### Historical Trends
+
+Catch have decreased since the implementation of regulatory measures in 2019, with a notable shift from gillnets to longlines as the primary fishing gear. Majority of catches continue to occur in Subarea 2
+
+::: indent
+
+**Pre-2019 Period**:
+
+::: indent
+   - Reported catches increased between 2013 and 2016, when the most commonly caught species included Portuguese dogfish, kitefin shark, birdbeak dogfish, and gulper shark
+   - Actively targeted until CMM 12-2019 which prohibited the targeting of specific deep-sea sharks
+ 
+:::
+
+**Post-2019 Period**:
+
+::: indent
+   - All deepwater sharks are now considered bycatch rather than target species
+:::
+:::
+
+
+# Task 5: Categorisation of data and assessment-limited stocks
+
+**Categories**
+   
+::: indent
+- Data availability and quality 
+- Data required for stock assessment
+::: 
+
+**Data** compiled from Tasks 2-4 
+
+::: indent
+- Catch records 
+- Biological data
+- Existing stock assessments
+:::
+
+**Indentify**
+
+::: indent
+- Gaps in data availability 
+- Quality of data
+:::
+
+  
+# Task 5: Categorisation of data and assessment-limited stocks
+
+### Task 1: Shark Tagging
+
+Methods to determine stock health depending on data availability
+
+::: indent
+**Objectives**: Collect data on shark distribution patterns and post-release mortality
+
+**Methods**:
+
+::: indent
+  - Deploy tags to track movement and behaviour
+:::
+
+**Challenges**: 
+
+::: indent
+  - Post-release mortality high
+  - The ecological risk assessment (ERA) is sensitive to distribution mapping source used, e.g.      
+     - AquaMaps, GeoNetwork, or IUCN Red Lists
+  
+:::
+::: 
+
+# Task 5: Categorisation of data and assessment-limited stocks
+
+### Tasks 2 & 3: Data Integration and Analysis
+
+Methods to determine stock health depend on data availability
+
+::: indent
+**Objective**: Review and integrate alternative data sources
+
+**Sources**:
+  
+::: indent
+  - FishBase
+    <!-- - IEO Limited coverage by year, but better Biol and only for LL -->
+    <!-- - SIOFA better catch data, but less Bio -->
+    <!-- - SIOFA & IEO short noisy time series -->
+    <!-- - CPUE only for PDog, but conflcting -->
+  - SIOFA
+  - IEO Observer
+:::
+  
+**Challenges**: 
+
+::: indent
+  - Gaps and inconsistencies
+  - Lack of sex specific data
+:::
+::: 
+
+
+# Task 5: Categorisation of data and assessment-limited stocks
+
+## Fish Base & Aqua Maps
+
+![](../figs/fishbase.png){width="60%"}
+
+### Limited
+
+i.e. no species specific data for gulper shark
+
+![](../figs/fishbase-2.png){width="50%"}
+
+# Task 5: Categorisation of data and assessment-limited stocks
+
+### Task 4: Assessment Approaches
+
+Methods to determine stock health depending on data availability
+
+::: indent
+**Objective**: Develop and describe assessment methods for shark species
+
+**Current Methods**: 
+
+::: indent
+  - Productivity-Susceptibility Analysis (PSA)
+  - Sustainability Assessment for Fishing Effects (SAFE) 
+:::
+
+**Next Steps**:
+
+::: indent
+  - Move from PSA to stock assessment to monitor effect of management
+:::
+
+**Assessment Method**: 
+
+
+::: indent
+- Requires
+    - Auxillary datasets
+    - Priors for natural mortality ($M$), population growth rate ($r$) 
+- Depends on data quality and quantity, e.g.
+    - Length of time series, level of measurement error, ...
+- Provides
+    - Stiock status
+    - Probablistic reference points
+:::
+::: 
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### SIOFA Ecological Risk Assessment
+
+::: indent
+**PSA**: Evaluates productivity and susceptibility to fishing, and ranks species/stocks in order of risk
+
+**SAFE**: Estimating fishing mortality rates and reference points
+:::
+
+Assessed the vulnerability of deepwater sharks to fishing in the SIOFA area, but doesn't assess effectiveness of management measures
+
+### Findings
+
+::: indent
+**Fishing Impact**: Long-lived, slow-growing, and low fecundity species are particularly vulnerable
+
+**Data Deficiency**: Over 50% of shark and ray species are data deficient on the IUCN Red List
+
+**Vulnerability**: at significant risk from fishing activities
+:::
+
+### Next Steps
+
+::: indent
+**Targeted** conservation efforts
+
+**Stock Assessment** to monitor effectiveness of management 
+
+::: indent  
+   - Reqiuires better catch, effort, and biological information
+:::
+:::
+
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Stock Assessment
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+::: indent
+- Integrated Methods e.g. SS3
+:::
+
+<img src="../figs/ss3.png" alt="SS3" style="width: 110%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Challenges
+
+
+```{=html}
+<style>
+.indent {
+  margin-left: 40px;
+}
+</style>
+```
+::: indent
+- Limited data availability 
+   - Life-history characteristics
+   - Short time series  
+   - Management aims to minimise catch
+:::
+
+:::
+:::
+
+
+<!-- # Task 6: Methods for Data-Limited Stocks -->
+
+<!-- ### Assessment Method  -->
+
+<!-- ::: indent -->
+<!-- - Depends on data quality and quantity -->
+<!-- :::  -->
+
+
+<!-- ### Data Availability and Quality  -->
+
+<!-- ::: indent -->
+<!-- - Length of time series, level of measurement error, ... -->
+<!-- ::: -->
+
+
+<!-- ### Summary -->
+
+<!-- ::: indent -->
+<!-- - Risk assessment for each stock -->
+<!-- - Recommendations for data collection and research to reduce uncertainty. -->
+<!-- - Hierarchical framework for assessing data-limited shark stocks. -->
+<!-- ::: -->
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+**Hierarchical Framework** build upon PSA to address the unique challenges of managing deepwater shark populations. 
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+From ranking to **Risk**
+
+<img src="../figs/PSAs.png" alt="PSA Example" style="width: 70%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Risk Equivalence
+
+<img src="../figs/blim.png" alt="PSA Example" style="width: 60%;"/>
+
+
+- **MSY**: inappropraite but methods for estimation well established
+- **Targets**: Achieve on average, medians
+- **Limits**: Avoid with high probability
+  
+:::
+:::
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Hierarchical framework
+
+Designed to address the unique challenges of managing deepwater shark populations.
+
+<!-- - Requires innovative approaches to implement effective management and conservation strategies. -->
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+**Builds upon PSA** and considers
+
+   - **Risk Equivalence**: i.e. more uncertainty should not allow greater risk
+   - **Prioritisation** of data collection and analytical methods to provide actionable conservation measures.
+  - **Adaptive Management**, as we manage we learn and adapt
+ 
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Hierachical Framework
+
+<img src="../figs/Hierchical_Assessment_Framework.png" alt="" style="width: 100%;"/>
+       
+:::
+:::
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Hierarchical Framework 
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+From ranking to **Risk**
+
+<img src="../figs/PSAs.png" alt="PSA Example" style="width: 80%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Hierachical Framework
+
+<img src="../figs/Hierchical_Assessment_Framework_1.png" alt="" style="width: 100%;"/>
+
+**Priors** so that uncertainty is propagated
+:::
+:::
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Data Quality
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### Length Data
+
+<img src="../figs/lfd.png" alt="PSA Example" style="width: 60%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+    
+### Hierachical Framework
+
+<img src="../figs/Hierchical_Assessment_Framework_2.png" alt="PSA Example" style="width: 100%;"/>
+
+**Challenges**: difference between sexes, low sample size
+
+:::
+:::
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Data Quality
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### Catch
+<img src="..\figs\21\catch-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+    
+### Hierachical Framework
+
+<img src="../figs/Hierchical_Assessment_Framework_3.png" alt="PSA Example" style="width: 100%;"/>
+
+**Challenges**: Short timeseries, gaps, bycatch
+
+:::
+:::
+
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+### Data Quality
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### CPUE Portuguese dogfish
+
+<img src="..\figs\pDogCPUE-1.png" alt="PSA Example" style="width: 80%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+    
+### Hierachical Framework
+
+<img src="../figs/Hierchical_Assessment_Framework_4.png" alt="PSA Example" style="width: 100%;"/>
+
+**Challenges**: conflicting trends, inconsistent with biology, large confidence interval
+
+:::
+:::
+
+
+
+# Task 6: Methods for Data-Limited Stocks
+
+## Outcomes
+
+::: indent
+
+**Hierarchical framework**
+
+::: indent
+   - Based on data availability extending PSA
+   - Length Based Indicators
+   - Biomass Based Stock Assessments
+:::
+   
+
+**Risk Assessment**:
+   
+::: indent
+   - Use PSA to evaluate the risk posed to each stock based on productivity and susceptibility attributes.
+   - Incorporate uncertainty into the risk assessment to ensure risk equivalence.
+   - Once mitigation measures identify evaluate the effectiveness
+:::
+
+**Data Improvement**:
+
+::: indent
+   - Assess the benefits of reducing uncertainty by collecting better data and improving knowledge.
+   - Develop recommendations for data collection and research priorities.
+:::
+:::
+
+# Task 7:  Assessment of Conservation Status
+
+**Objective**: apply the developed framework to assess the conservation status of the main deep-water sharks in the SIOFA area.
+
+::: indent
+
+**Application of Framework**:
+   
+::: indent
+- Conduct PSA and preliminary stock assessments as appropriate.
+- Apply the hierarchical framework developed in Task 6 to the main deep-water shark species identified in Task 5.
+:::
+
+**Conservation Status**:
+
+::: indent
+   - Determine the conservation status of each shark stock based on the assessment results.
+   - Categorize stocks into risk levels
+::: 
+
+**Management Recommendations**:
+   
+::: indent   
+   - Develop management recommendations based on the conservation status and risk assessment.
+   - Include specific measures to mitigate risks and improve stock health.
+:::
+::: 
+
+# Task 7:  Assessment of Conservation Status
+
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### Productivity
+
+<img src="../figs/02/box-doubling-1.png" 
+alt="PSA Example" style="width: 80%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+       
+### Reference Points $F_{MSY}$
+
+<img src="../figs/box-m-1.png" 
+alt="PSA Example" style="width: 80%;"/>
+
+:::
+:::
+
+
+# Task 7:  Assessment of Conservation Status
+
+### Length Based Indicators
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+    
+### Portuguese Dogfish 
+
+
+```{r, len1, fig,width=8, fig.height=4}
+# Load Data
+stuff=c("OPE_ID","MinLength","MaxLength","NbFemale","NbMale","NbUndetermined","Length", "Sex")
+df3  =merge(biol[,stuff],cpue,by="OPE_ID")
+df3$Species=gsub(" ","\n",df3$speciesScientificName)
+ 
+p1=ggplot(subset(df3[grep("Centro",df3$Species),], !is.na(Length)), 
+       aes(x = Length))+
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  facet_grid(Species~., scales = "free_y") +
+  theme_my(16)
+```
+
+```{r, len2, fig,width=8, fig.height=4}
+p2=ggplot(subset(df3[grep("Centrophorus granulosus",df3$speciesScientificName),], 
+              !is.na(Length)), 
+       aes(x = Length))+
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  facet_grid(Year~., scales = "free_y") +
+  theme_my(16)
+```
+
+```{r, len3, fig,width=6, fig.height=4}
+load("../data/results/siofa.RData") 
+```
+
+```{r}
+df4=subset(df3[grep("Centrophorus granulosus",df3$speciesScientificName),],!is.na(Length))
+df4=subset(df4,Sex%in%c("M","F"))
+rfs=exp(subset(siofa,Genus=="Centrophorus"&Species=="granulosus"&trait%in%c("Lm","Loo"))[,"data"])
+
+p=gghistogram(df4,x="Length",bins=60)+
+  geom_vline(aes(xintercept=V1),data=ddply(df4,.(Year), with, median(Length)),
+             col="black",linewidth=1.5)+
+  coord_flip()+
+  #scale_x_reverse()+  
+  facet_grid(Sex~Year, scales = "free_x") +
+  geom_vline(aes(xintercept=rfs[1]),col="red")+
+  geom_vline(aes(xintercept=170),col="blue")+
+  theme_my()
+```
+
+<img src="../figs/11mat-fit-1.png" alt="PSA Example" style="width: 60%;"/>
+<img src="../figs/11len-ieo-1.png" alt="PSA Example" style="width: 60%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Large size means low F
+
+<img src="../figs/lbi.png" alt="PSA Example" style="width: 70%;"/>
+
+:::
+:::
+
+
+```{r}
+library(reshape)
+library(kableExtra)
+
+load("../data/siofa.RData")
+load("../data/ieo.RData")
+
+b1=cast(siofa$biol,species~year,fun="length",value="NbCaught")
+b2=cast(ieo$biol,  spp    ~year,fun="length",value="len")
+b3=cast(subset(ieo$biol,!is.na(mat)),  spp~year,fun="length",value="mat")
+
+u1=cast(siofa$cpue,species~year,fun="length",value="catchWeight")
+u2=cast(ieo$cpue,  species~year,fun="length",value="CPUE")
+```
+
+
+
+```{r, fig.height=8, fig.width=10, eval=FALSE}
+dt2=transform(merge(dat,
+                    ddply(dat, .(species), with, data.frame(max=max(V1)))),
+              catch=V1/max)
+dt3=melt(cast(dt2,year~species,value="catch"))
+dt3$Genus  =laply(strsplit(dt3$species, " "), function(x) x[[1]])
+dt1$Genus  =laply(strsplit(dt1$species, " "), function(x) x[[1]])
+
+ggplot(aes(year,value,col=Genus),data=dt3)+
+    geom_path()+
+    geom_point()+
+    facet_grid(species~.)+
+  scale_y_continuous(breaks=NULL)+
+  theme(legend.position="none",strip.text=element_blank())+
+  geom_text(aes(label=paste(species,": (",as.integer(total)," tonnes)",sep=""),x=2000.5,y=0.75), hjust=0, data=dt1)+
+  xlab("Year")+ylab("")
+```
+
+
+# Task 7:  Assessment of Conservation Status
+
+### Length Based Assessment
+
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+
+**Pmega**: The proportion of large mature individuals  
+
+**Length at capture (Lc)**: If lower than the length at 50% maturity (L50), suggests that many individuals are being captured before reaching full maturity.
+
+<img src="../figs/lbi.png" alt="PSA Example" style="width: 70%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+
+### Management Implications
+
+- **Stock Recovery**: Most stocks will will take about 20 years to double and that the annual increase with no fishing would be 5%.
+
+- **Detection of Change**s: Difficulty in detecting short-term changes in stock size emphasies the importance of long-term management strategies and monitoring.
+
+:::
+:::
+
+```{r, fig.width=8, fig.height=4}
+dat=ddply(ieo$bio,.(year,spp), with, data.frame(len=mean(len,na.rm=T)))
+dat=merge(expand.grid(year=unique(ieo$biol$year),spp=unique(ieo$biol$spp)),dat,all.x=TRUE)
+
+p1=ggplot(dat)+
+  geom_path(aes(y=len,year))+
+  geom_point(aes(y=len,year))+
+  facet_grid(spp~.,scale="free")
+```
+
+```{r, fig.width=8, fig.height=4}
+b1=knitr::kable(b1, caption="SIOFA Biol",booktabs=T, digits=3)
+b2=knitr::kable(b2, caption="IEO Biol"  ,booktabs=T, digits=3)
+b3=knitr::kable(b3, caption="SIOFA CPUE",booktabs=T, digits=3)
+u1=knitr::kable(u1, caption="SIOFA CPUE",booktabs=T, digits=3)
+u2=knitr::kable(u2, caption="IEO CPUE"  ,booktabs=T, digits=3)
+```
+
+# Task 7:  Assessment of Conservation Status
+
+### Productivity
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### Doubling Time
+
+<img src="../figs/doubling-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+- Most stocks will take about 20 years to double in size,
+- Annual increase with no fishing would be 5%
+- Difficult to detect in short-term
+
+:::
+:::
+# Task 7:  Assessment of Conservation Status
+
+### Reference Points
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+**$F_{MSY}$** based on **M** or **r**
+
+<img src="../figs/msy-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+### Challenges
+
+- Most stocks will take about 20 years to double in size,
+- Annual increase with no fishing would be 5%
+- Difficult to detect in short-term
+
+:::
+:::
+
+# Task 7:  Assessment of Conservation Status
+
+### Length data
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+<img src="../figs/lfd-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+
+### Challenges
+
+- Small sample sizes
+- Difficult to detect annual changes in F
+- Need more biological information on sex and maturity
+
+:::
+:::
+
+# Task 7:  Assessment of Conservation Status
+
+### Length Trends
+
+## Portuguese Dogfish
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+### Large size means low F
+
+<img src="..\figs\pdogMnLen-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+       
+      
+### Challenges
+ 
+- Results quite different depending on method
+
+::: indent
+- **Females** No trend
+- **Males** Appears to be an increase in mean size
+:::
+:::
+:::
+
+# Task 7:  Assessment of Conservation Status
+
+### Catch
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+<img src="../figs/catch-1.png" alt="PSA Example" style="width: 100%;"/>
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+
+- Difficult to interpret without auxillary data
+
+<img src="../figs/cpue_siofa.png" alt="PSA Example" style="width: 60%;"/>
+
+- Catch per Unit Effort data appears to be noisy and inconsistent
+- If management reduces catches, assessments will be difficult
+
+:::
+:::
+
+
+# Task 7:  Assessment of Conservation Status
+
+### Data Sets
+
+::: indent
+### Current
+
+::: indent
+-   Biological Parameters
+-   Size Data
+-   Catch
+-   Catch and Effort
+:::
+
+### Future
+
+::: indent
+A better understanding of species distribution and abundance could help improve
+
+::: indent
+-   Spatial and temporal mitigation measues
+-   Monitoring of stock distribution, abundance and recovery
+:::
+Innovative data collection methods such as
+
+::: indent
+-   Environmental DNA 
+:::
+:::
+::: 
+
+
+
+# Task 7:  Assessment of Conservation Status
+
+## Outcomes
+
+::: indent
+- PSA provides a semi-quantitative assessment of risk.
+- Hierarchical framework ensures systematic and comprehensive analysis.
+:::
+
+### Results
+
+::: indent
+- Conservation status assessments for the main deep-water sharks in the SIOFA area.
+- Management recommendations to ensure the sustainability of shark stocks.
+:::
+
+# Task 7:  Assessment of Conservation Status
+
+###  eDNA could help in the development of spatial indicators 
+
+
+::: indent
+Provide a better understanding of species distribution and abundance 
+
+   - Indicators/Estimators of 
+      Location, range, occupancy, and aggregation, ... 
+  - Proxies for abundance
+  - Identifying hot spots,
+  - All potentially important for management.
+  
+:::
+
+
+
+# Task 7:  Assessment of Conservation Status
+
+### Simulation & MSE 
+
+::: {style="display: flex; justify-content: center;"}
+::: {style="flex: 1; padding: 10px;"}
+
+**Simulation**
+
+Using an Operating and Observation Error Model for different data sets, i.e. type, length and exploitation history 
+
+<img src="../figs/jabba.png" alt="PSA Example" style="width: 100%;"/>
+
+
+:::
+::: {style="flex: 1; padding: 10px;"}
+       
+**Flexible framework**
+
+Allows for the incorporation of a variety of auxiliary data sets
+
+As well as CPUE can use length data e.g. Length-Based Indicators to 
+
+::: indent
+- Provide priors for $F/F_{MSY}$, just 1 year can be used
+- Time series of Z
+:::
+
+:::
+:::
+
+# SIOFA Scientific Committee
+
+## SC-09-39 Framework 
+
+
+::: indent
+
+Highlighted the difficulties in conducting stock assessments for deepwater sharks due to their bycatch nature and low productivity, and proposed 
+
+::: indent
+- A hierarchical stock assessment risk framework 
+- Approaches including enhanced biological data collection, tagging studies, eDNA and spatial analyses, to improve the understanding and management 
+:::
+
+The SC endorsed the approach and recommended further trials and the establishment of a project advisory group to ensure successful implementation.
+:::
+
+::: {style="text-align: center;"}
+![](../figs/assessments.png){width="45%"}
+:::
+
+
+# SIOFA Scientific Committee
+
+### Challenges
+
+::: indent
+- Deepwater sharks are primarily bycatch species with low productivity, making traditional stock assessments challenging.
+- Hierarchical framework aims to address these challenges by providing a structured approach to assess and manage these species.
+:::
+
+### Proposed Approach
+
+::: indent
+- **Biological Data Collection**: Enhance the collection of biological data, particularly ageing data, to assess biomass trends and establish sustainable catch levels for species like the Portuguese dogfish.
+- **Tagging Studies**: Conduct tagging studies to gather data on the movement and habitat use of vulnerable species.
+- **Environmental DNA**: to model habitat suitability and interspecies correlations, which can provide insights into the spatial and depth distribution of species.
+- **Spatial Analyses**: additional spatial distribution data to identify aggregation areas for potential spatial management.
+:::
+
+### Management Measures
+
+::: indent
+- **Spatial Management**: Identifying aggregation areas through spatial distribution data to implement spatial management measures.
+- **Sustainable Catch Levels**: Establishing sustainable catch levels based on enhanced biological data collection and biomass trend assessments.
+- **eDNA**: Improving knowledge of spatial and depth data through eDNA to inform management decisions.
+:::
+
+### Contributions to Knowledge and Management
+
+::: indent
+- The proposed approach aims to strengthen the knowledge base and enhance the management of deepwater sharks in the SIOFA Area.
+- These efforts are expected to contribute to more effective conservation and sustainable use of deepwater shark populations.
+:::
+
+# Deepwater Sharks
+
+    
+::: indent
+- Slow growing, historical time series are short, and sample sizes small resulting in high uncertainty. 
+- As bycatch species, an objective is to not catch them, this will mean that less data will be available for traditional stock assessments, i.e. catch and CPUE
+- It will be difficult to monitor impacts from traditional stock assessments as it will take many years to detect trends
+- Currently the management recommendations are to return individuals as fast as possible to the water, so there is limited time to collect biological samples. 
+  - There is strong sexual dimorphism but data on length at maturity by sex is poor it would make sense therefore to sample individuals rather than return them to the water.
+   - Length based indicators could be valuable to monitor recovery, i.e. are individuals recruiting to the adult population? This requires better biological samples
+- Traditional stock assessments are mainly concerned with abundance, but a main issue is distribution, e.g.
+    -    are individuals aggregated? This has implications for management measures, i.e. move-on-rule
+    -    Is the distribution increasing, this may show recovery
+    -    Overlap with fishing effort, and hence vulnerability
+ - Since tagging isn't going to help, could eDNA provide a solution?
+:::
+
+# Objectives
+
+<img src="../figs/objectives.png" alt="PSA Example" style="width: 100%;"/>
+
+
+
+<!-- |Species                  | L50|Gender | Lc| Lmean|    Pmega| -->
+<!-- |:------------------------|---:|:------|--:|-----:|--------:| -->
+<!-- |Centrophorus granulosus  |  89|Female | 62|   125|     0.45| -->
+<!-- |Centrophorus granulosus  |    |Male   | 62|   117|     0.84| -->
+<!-- |Centrophorus squamosus   |  91|Female | 59|   114|     0.69| -->
+<!-- |Centrophorus squamosus   |    |Male   | 52|   106|     0.38| -->
+<!-- |Centroscymnus coelolepis |  81|Female | 52|    98|     0.06| -->
+<!-- |Centroscymnus coelolepis |    |Male   | 45|    88|     0.03| -->
+<!-- |Dalatias licha           |  81|Female | 62|   124|     0.66| -->
+<!-- |Dalatias licha           |    |Male   | 55|   105|     0.73| -->
+<!-- |Deania profundorum       |  87|Female | 46|    87|     0.85| -->
+<!-- |Deania profundorum       |    |Male   | 34|    69|     1.00| -->
+
+The concept of defining status targets in fisheries management based on Maximum Sustainable Yield (MSY), including the associated reference points of fishing mortality (FMSY) and biomass (BMSY), is well-documented in fisheries science literature. These reference points are critical for ensuring sustainable fishing practices and maintaining fish stock health.
+
+### Reference for MSY, FMSY, and BMSY
+
+A comprehensive reference that discusses these concepts is the document titled "Exploring a relative harvest rate strategy for moderately data-limited fisheries management" published in the ICES Journal of Marine Science. This document elaborates on the derivation and application of biomass limit reference points (Blim) and the challenges associated with estimating stock-recruitment relationships. It also highlights the importance of rebuilding time as a versatile performance metric that can be applied across different stock assessment frameworks and ecosystem models[1].
+
+### Key Points from the Reference
+
+1. **Biomass Limit Reference Point (Blim)**:
+   - The derivation of Blim is dependent on the stock-recruitment relationship, which can be difficult to estimate accurately. Parameters are often fixed rather than estimated from data, which can overlook variations in recruitment dynamics between periods of overfishing and recovery[1].
+
+2. **Rebuilding Time**:
+   - Rebuilding time, expressed in units of generation time, is a versatile performance metric that can be applied to any modeling framework capable of performing projections. It is independent of the reference point framework used for a stock and provides a measure of the stock's resilience and capacity to recover or adapt to pressures while maintaining ecosystem services[1].
+
+3. **Economic Cost of Recovery**:
+   - The rebuilding time metric allows for the calculation of the economic cost of recovery, considering the yield to be zero until recovery and MSY thereafter. This approach aligns with the objectives of rebuilding stocks as required under international agreements such as the Convention on Biological Diversity and the High Seas Treaty[1].
+
+This reference provides a detailed discussion on the use of MSY, FMSY, and BMSY in fisheries management, highlighting the complexities and considerations involved in setting these targets.
+
+The concept of defining status targets in fisheries management based on Maximum Sustainable Yield (MSY), including the associated reference points of fishing mortality (FMSY) and biomass (BMSY), is well-documented in fisheries science literature. These reference points are critical for ensuring sustainable fishing practices and maintaining fish stock health.
+
+### Reference for MSY, FMSY, and BMSY
+
+A comprehensive reference that discusses these concepts is the document titled "Exploring a relative harvest rate strategy for moderately data-limited fisheries management" published in the ICES Journal of Marine Science. This document elaborates on the derivation and application of biomass limit reference points (Blim) and the challenges associated with estimating stock-recruitment relationships. It also highlights the importance of rebuilding time as a versatile performance metric that can be applied across different stock assessment frameworks and ecosystem models[1].
+
+### Key Points from the Reference
+
+1. **Biomass Limit Reference Point (Blim)**:
+   - The derivation of Blim is dependent on the stock-recruitment relationship, which can be difficult to estimate accurately. Parameters are often fixed rather than estimated from data, which can overlook variations in recruitment dynamics between periods of overfishing and recovery[1].
+
+2. **Rebuilding Time**:
+   - Rebuilding time, expressed in units of generation time, is a versatile performance metric that can be applied to any modeling framework capable of performing projections. It is independent of the reference point framework used for a stock and provides a measure of the stock's resilience and capacity to recover or adapt to pressures while maintaining ecosystem services[1].
+
+3. **Economic Cost of Recovery**:
+   - The rebuilding time metric allows for the calculation of the economic cost of recovery, considering the yield to be zero until recovery and MSY thereafter. This approach aligns with the objectives of rebuilding stocks as required under international agreements such as the Convention on Biological Diversity and the High Seas Treaty[1].
+
+This reference provides a detailed discussion on the use of MSY, FMSY, and BMSY in fisheries management, highlighting the complexities and considerations involved in setting these targets.
+
+[1]: https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/11254397/f3b9af6b-6025-4d8f-88ea-d15cce6d7615/V1_PEW.pdf
+
+

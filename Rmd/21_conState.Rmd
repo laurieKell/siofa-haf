@@ -98,11 +98,12 @@ load("../data/spp.RData")
 load("../data/ieo.RData")
 load("../data/siofa.RData")
 
-load("../data/results/level2.RData")  
+load("../data/lfd.RData")
+#load("../data/results/level2.RData")  
 ```
 
 
-#8.1 Available Data and Appropriate Methods
+# 8.1 Available Data and Appropriate Methods
 
 This section summarises the data avaiable to assess the conservation status of key deep-water shark species within the SIOFA area, based on tbe observer and catch data from IEO. It highlight the main conclusions drawn from the available data and the implications of current fishing regimes for these species.
 
@@ -263,6 +264,7 @@ ggplot(r,aes(x=log(2)/dev*2,y=paste(Genus,Species)))+
 **Table `r iTab=iTab+1; iTab`** Number of of observations of length
 
 ```{r lengths}
+load("../data/results/kab1.RData")
 kab1
 ```
 
@@ -277,10 +279,13 @@ lfd
 **Table `r iTab=iTab+1; iTab`** . 
 
 ```{r lbi}
+load("../data/results/kab2.RData")
 kab2
 ```
 
 ```{r pdogMnLen, fig.height=6, fig.width=8}
+load("../data/results/pDogMn.RData")
+
 pDogMn
 ```
 
@@ -288,6 +293,8 @@ pDogMn
 
 
 ```{r pdogLFD, fig.height=6, fig.width=8}
+load("../data/results/pDogLFD.RData")
+
 pDogLFD
 ```
 

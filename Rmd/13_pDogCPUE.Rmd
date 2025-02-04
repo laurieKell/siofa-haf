@@ -69,8 +69,10 @@ theme_set(theme_my())
 ```{r data-preparation}
 # Load data
 load("../data/siofa.RData")
-load("../data/ieo.RData")
+load("../data/ieo.RData") 
+```
 
+```{r}
 ## SIOFA data 
 # CPUE calculations and effort variable
 df1 <- siofa$cpue %>% 
@@ -111,7 +113,6 @@ set.seed(123) # Setting a seed for reproducibility
 rf=randomForest(depth~lat+lon, 
                 data=subset(df1,!(is.na(depth)|is.na(lat)|is.na(lon))))
 df2$depth=predict(rf, newdata=subset(df2,!(is.na(lat)|is.na(lon))))
-
 ```
 
 
